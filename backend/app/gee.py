@@ -290,7 +290,8 @@ def detecter(zone: dict, ref: tuple[str, str], recent: tuple[str, str], params: 
     # Distance à l'eau calculée à 30 m sur un voisinage de 64 pixels (≈ 2 km, au-delà le score ne change plus) :
     # un voisinage de 512 pixels à 10 m dépasse la mémoire autorisée par Earth Engine.
     eau30 = eau.reproject(crs="EPSG:32630", scale=30)
-    dist = eau30.fastDistanceTransform(64).sqrt().multiply(30).rename("dist_eau_m")
+    # Au-delà du voisinage (64 px × 30 m), l'algorithme renvoie une valeur sentinelle énorme : on plafonne.
+    dist = eau30.fastDistanceTransform(64).sqrt().multiply(30).min(64 * 30).rename("dist_eau_m")
     pile = dndvi.addBands(i_rec.select(["bsi", "mndwi", "ndti"])).addBands(dist)
 
     def vectoriser(echelle: int, morceaux: int):

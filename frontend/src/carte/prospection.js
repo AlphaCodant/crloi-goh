@@ -418,7 +418,7 @@ export function initProspection(C, { racine, ecoute, ctx }) {
           ${ligne("Perte de NDVI", ind.dndvi !== undefined && ind.dndvi !== null ? fmt.n(ind.dndvi, 2) : null, "NDVI avant − NDVI après : plus c'est élevé, plus la végétation a disparu")}
           ${ligne("Sol nu (BSI)", ind.bsi !== undefined && ind.bsi !== null ? fmt.n(ind.bsi, 2) : null, "Indice de sol nu sur l'image récente")}
           ${ligne("Turbidité (NDTI)", ind.ndti !== undefined && ind.ndti !== null ? fmt.n(ind.ndti, 2) : null, "Eau chargée en sédiments")}
-          ${ligne("Distance à l'eau", ind.dist_eau_m !== undefined && ind.dist_eau_m !== null ? `${fmt.n(ind.dist_eau_m)} m` : null, "Distance au cours d'eau ou plan d'eau le plus proche")}
+          ${ligne("Distance à l'eau", ind.dist_eau_m !== undefined && ind.dist_eau_m !== null ? (ind.dist_eau_m >= 1900 ? "plus de 1,9 km" : `${fmt.n(ind.dist_eau_m)} m`) : null, "Distance au cours d'eau ou plan d'eau le plus proche")}
           <dt>Coordonnées</dt><dd class="num">${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}</dd>
           ${site ? `<dt>Site connu proche</dt><dd>${esc(site.code)} · ${fmt.n(c.site_proche_m)} m</dd>` : ""}
           ${lien ? `<dt>Site enregistré</dt><dd><strong>${esc(lien.code)}</strong> ${esc(lien.localite)}</dd>` : ""}
