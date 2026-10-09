@@ -8,6 +8,8 @@ import os  # noqa: E402
 
 from fastapi import APIRouter, FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+from pathlib import Path  # noqa: E402
 
 from sqlalchemy import text  # noqa: E402
 from .db import DB_SCHEMA, Base, engine  # noqa: E402
@@ -42,3 +44,10 @@ async def startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await seed()
+
+
+# Interface web (pages statiques reprises de GestReb) servie par la même application.
+# Montée en dernier pour ne pas masquer /api.
+WEB_DIR = Path(os.environ.get("WEB_DIR", Path(__file__).resolve().parents[2] / "web"))
+if WEB_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
