@@ -1,0 +1,45 @@
+# Déploiement Render (Blueprint) : une API Python et un site statique.
+# La base PostgreSQL est celle déjà créée sur Render (région Oregon) :
+# coller son « Internal Database URL » dans DATABASE_URL au moment de la création.
+services:
+  - type: web
+    name: crloi-goh-api
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_SSL
+        value: "false"          # "true" si vous utilisez l'URL externe de la base
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false              # ex. https://crloi-goh.onrender.com
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_NAME
+        sync: false
+      - key: ADMIN_GRADE
+        value: Lieutenant
+
+  - type: web
+    name: crloi-goh
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false              # ex. https://crloi-goh-api.onrender.com (sans /api)
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
