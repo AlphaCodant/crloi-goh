@@ -22,6 +22,20 @@ STATUTS_CIBLE = ("a_verifier", "programmee", "confirmee", "infirmee", "ecartee")
 StatutCible = Literal["a_verifier", "programmee", "confirmee", "infirmee", "ecartee"]
 
 
+def _message_gee(e: Exception) -> str:
+    """Traduit les erreurs Earth Engine les plus fréquentes en consignes."""
+    t = str(e)
+    if "earthengine.maps.create" in t or "earthengine.computations.create" in t or "PERMISSION_DENIED" in t.upper():
+        return ("Le compte de service n'a pas les droits nécessaires dans le projet Google Cloud. Dans la console Google Cloud → IAM, "
+                "donnez-lui les rôles « Earth Engine Resource Writer » et « Service Usage Consumer », puis réessayez dans 2 minutes. "
+                f"(détail : {t[:160]})")
+    if "too large" in t or "memory" in t.lower():
+        return f"Zone trop lourde pour un seul calcul : choisissez une zone plus petite (forêt, zone de travail). (détail : {t[:160]})"
+    if "not registered" in t.lower() or "not been used" in t.lower():
+        return f"Le projet Google Cloud n'est pas enregistré pour Earth Engine ou l'API n'est pas activée. (détail : {t[:200]})"
+    return t
+
+
 def _maintenant() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -43,7 +57,7 @@ async def gee_verifier(_u=Depends(current_user)):
     try:
         return await run_in_threadpool(gee.verifier)
     except Exception as e:  # noqa: BLE001 — message GEE rendu tel quel à l'utilisateur
-        raise HTTPException(502, f"Connexion à Earth Engine impossible : {e}")
+        raise HTTPException(502, f"Connexion à Earth Engine impossible : {_message_gee(e)}")
 
 
 class CoucheIn(BaseModel):
@@ -69,7 +83,7 @@ async def gee_couche(data: CoucheIn, _u=Depends(current_user)):
     except ValueError as e:
         raise HTTPException(400, str(e))
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(502, f"Earth Engine : {e}")
+        raise HTTPException(502, f"Earth Engine : {_message_gee(e)}")
 
 
 # ======================================================== Zones suspectes
@@ -249,7 +263,7 @@ async def lancer_analyse(data: AnalyseIn, user=Depends(current_user), db: AsyncS
         res = await run_in_threadpool(gee.detecter, zone, (data.ref_du.isoformat(), data.ref_au.isoformat()),
                                       (data.rec_du.isoformat(), data.rec_au.isoformat()), params)
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(502, f"Analyse Earth Engine impossible : {e}")
+        raise HTTPException(502, f"Analyse Earth Engine impossible : {_message_gee(e)}")
     return await enregistrer_analyse(db, user, data, zone, params, res)
 
 

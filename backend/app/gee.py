@@ -232,9 +232,15 @@ def detecter(zone: dict, ref: tuple[str, str], recent: tuple[str, str], params: 
     non_eau_perm = gsw.select("occurrence").unmask(0).lt(80)
     cand = perte.And(vegetalise).And(nu.Or(bassin)).And(non_bati).And(non_eau_perm).selfMask()
     px_min = max(1, int(round(float(params.get("surface_min_ha", 0.5)) * 100)))
-    cand = cand.updateMask(cand.connectedPixelCount(maxSize=1024, eightConnected=True).gte(px_min))
+    # Le comptage ne doit aller que jusqu'au seuil : un maxSize de 1024 oblige Earth Engine à charger
+    # des voisinages de plus de 2 000 pixels de côté (erreur « Output of image computation is too large »).
+    taille_max = int(min(1024, max(64, px_min * 2)))
+    cand = cand.updateMask(cand.connectedPixelCount(maxSize=taille_max, eightConnected=True).gte(px_min))
     eau = gsw.select("max_extent").unmask(0).gt(0).Or(i_rec.select("mndwi").gt(0.2))
-    dist = eau.fastDistanceTransform(512).sqrt().multiply(ee.Image.pixelArea().sqrt()).rename("dist_eau_m")
+    # Distance à l'eau calculée à 30 m sur un voisinage de 64 pixels (≈ 2 km, au-delà le score ne change plus) :
+    # un voisinage de 512 pixels à 10 m dépasse la mémoire autorisée par Earth Engine.
+    eau30 = eau.reproject(crs="EPSG:32630", scale=30)
+    dist = eau30.fastDistanceTransform(64).sqrt().multiply(30).rename("dist_eau_m")
     pile = dndvi.addBands(i_rec.select(["bsi", "mndwi", "ndti"])).addBands(dist)
 
     def vectoriser(echelle: int, morceaux: int):
