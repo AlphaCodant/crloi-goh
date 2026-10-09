@@ -22,7 +22,7 @@ export default function BrqPage() {
           <h1>BRQ</h1>
           <p>Chaque visite de site enregistrée ici met à jour le statut du site sur la carte et les indicateurs du tableau de bord.</p>
         </div>
-        <button className="btn primary" type="button" onClick={() => setEditing({ date: today, reference: "", unites: "", observations: "", visites: [newVisite()] })}>Saisir un BRQ</button>
+        <button className="btn btn-primary" type="button" onClick={() => setEditing({ date: today, reference: "", unites: "", observations: "", visites: [newVisite()] })}>Saisir un BRQ</button>
       </div>
       {!hasToday && <div className="card" style={{ background: "var(--warn-soft)", borderColor: "var(--warn)", marginBottom: 14, fontSize: 13.5 }}>Aucun BRQ enregistré pour aujourd'hui ({frDate(today)}).</div>}
       <div className="grid">
@@ -33,16 +33,16 @@ export default function BrqPage() {
                 <h3>BRQ du {frDate(b.date)}</h3>
                 <div className="muted" style={{ fontSize: 13 }}>{[b.unites, b.reference].filter(Boolean).join(" · ")}</div>
               </div>
-              <button className="btn small" type="button" onClick={() => setEditing({ ...b, visites: b.visites.map((v) => ({ ...newVisite(), ...v, site_id: v.site_id || "" })) })}>Modifier</button>
+              <button className="btn btn-sm" type="button" onClick={() => setEditing({ ...b, visites: b.visites.map((v) => ({ ...newVisite(), ...v, site_id: v.site_id || "" })) })}>Modifier</button>
             </div>
-            <div className="table-box" style={{ marginTop: 10 }}>
-              <table>
+            <div className="card table-wrap" style={{ marginTop: 10 }}>
+              <table className="table">
                 <thead><tr><th>Site</th><th>Constat</th><th>Saisies</th><th>Interpellés</th><th>Note</th></tr></thead>
                 <tbody>
                   {b.visites.map((v) => (
                     <tr key={v.id}>
                       <td><span className="mono" style={{ fontWeight: 600 }}>{v.site_code || "—"}</span> {v.site_localite}</td>
-                      <td><span className="pill"><span className="dot" style={{ background: STATUT_HEX[v.constat] }} />{v.constat_label}</span></td>
+                      <td><span className="badge"><span className="dot" style={{ background: STATUT_HEX[v.constat] }} />{v.constat_label}</span></td>
                       <td>{saisiesText(v.saisies) || "—"}</td>
                       <td className="num">{v.interpelles || "—"}</td>
                       <td style={{ maxWidth: 360 }}>{v.note}</td>
@@ -127,21 +127,21 @@ function BrqForm({ init, sites, onClose, onSaved }) {
                 </div>
               </div>
               <label className="f">Constats et observations<textarea style={{ minHeight: 60 }} value={v.note} onChange={(e) => setV(i, { note: e.target.value })} /></label>
-              {b.visites.length > 1 && <div><button className="btn small danger" type="button" onClick={() => setB({ ...b, visites: b.visites.filter((_, j) => j !== i) })}>Retirer cette visite</button></div>}
+              {b.visites.length > 1 && <div><button className="btn btn-sm btn-soft-danger" type="button" onClick={() => setB({ ...b, visites: b.visites.filter((_, j) => j !== i) })}>Retirer cette visite</button></div>}
             </div>
           </fieldset>
         ))}
         <div><button className="btn" type="button" onClick={() => setB({ ...b, visites: [...b.visites, newVisite()] })}>+ Ajouter une visite</button></div>
         <label className="f">Observations générales<textarea value={b.observations} onChange={(e) => setB({ ...b, observations: e.target.value })} /></label>
-        {err && <div className="err">{err}</div>}
+        {err && <div className="alert error">{err}</div>}
         <div className="row" style={{ justifyContent: "space-between" }}>
           <div>
-            {b.id && !confirmDel && <button className="btn danger" type="button" onClick={() => setConfirmDel(true)}>Supprimer ce BRQ</button>}
-            {confirmDel && <span className="row"><span className="err">Les statuts issus de ce BRQ seront retirés.</span>
-              <button className="btn danger" type="button" onClick={() => api("/brq/" + b.id, { method: "DELETE" }).then(onSaved).catch((x) => setErr(x.message))}>Confirmer</button>
+            {b.id && !confirmDel && <button className="btn btn-danger" type="button" onClick={() => setConfirmDel(true)}>Supprimer ce BRQ</button>}
+            {confirmDel && <span className="row"><span className="alert error">Les statuts issus de ce BRQ seront retirés.</span>
+              <button className="btn btn-danger" type="button" onClick={() => api("/brq/" + b.id, { method: "DELETE" }).then(onSaved).catch((x) => setErr(x.message))}>Confirmer</button>
               <button className="btn" type="button" onClick={() => setConfirmDel(false)}>Annuler</button></span>}
           </div>
-          <button className="btn primary" type="submit">Enregistrer le BRQ</button>
+          <button className="btn btn-primary" type="submit">Enregistrer le BRQ</button>
         </div>
       </form>
     </Modal>

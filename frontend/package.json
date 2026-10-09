@@ -6,15 +6,20 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "vendor": "node scripts/vendor.mjs",
+    "predev": "npm run vendor",
+    "prebuild": "npm run vendor"
   },
   "dependencies": {
-    "leaflet": "1.9.4",
+    "@fontsource-variable/inter": "5.2.5",
+    "apexcharts": "3.54.1",
+    "material-icons": "1.13.14",
+    "ol": "10.6.1",
+    "proj4": "2.15.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-leaflet": "4.2.1",
-    "react-router-dom": "6.26.2",
-    "recharts": "2.12.7"
+    "react-router-dom": "6.26.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "4.3.1",

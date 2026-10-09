@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion · CRLOI Gôh</title>
+  <meta name="theme-color" content="#0b3b26">
+  <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
+  <link rel="stylesheet" href="/css/fonts.css">
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/auth.css">
+  <link rel="stylesheet" href="/css/crloi.css">
+</head>
+<body>
+  <div class="auth">
+    <section class="auth-visual" aria-hidden="true">
+      <div class="brand">
+        <img src="/img/logo.svg" alt="">
+        <span><strong>CRLOI Gôh</strong><small>Cellule renseignement</small></span>
+      </div>
+      <div>
+        <h2>Localiser, suivre et documenter l'orpaillage illégal dans le Gôh.</h2>
+        <p class="lead">L'outil de la cellule renseignement du Comité Régional de Lutte contre l'Orpaillage Illégal : sites, constats datés, BRQ et indicateurs du plan d'action.</p>
+        <div class="auth-points">
+          <div><span class="mi">public</span><span>Géoportail : sites, contours, forêts classées, cours d'eau et barre temporelle avant / après.</span></div>
+          <div><span class="mi">insights</span><span>Tableau de bord : neutralisation, recolonisation à 3 mois, tentatives de reprise, saisies.</span></div>
+          <div><span class="mi">contact_page</span><span>Fiches de renseignement cotées, BRQ quotidiens et rapports hebdomadaires.</span></div>
+        </div>
+      </div>
+      <div class="foot">Comité Régional de Lutte contre l'Orpaillage Illégal — Région du Gôh</div>
+    </section>
+    <section class="auth-form">
+      <div class="auth-card">
+        <div class="mobile-brand"><img src="/img/logo.svg" alt=""><strong>CRLOI Gôh</strong></div>
+        <h1>Connexion</h1>
+        <p class="intro">Accès réservé aux membres de la cellule renseignement.</p>
+        <div class="alert error mb-4 hidden" id="erreur" role="alert"><span class="mi">error</span><span id="erreur-texte"></span></div>
+        <form id="form" novalidate>
+          <div class="field">
+            <label for="email">Adresse électronique</label>
+            <div class="input-icon"><span class="mi">mail</span>
+              <input class="input" id="email" type="email" autocomplete="username" placeholder="prenom.nom@exemple.ci" required autofocus></div>
+          </div>
+          <div class="field">
+            <label for="mp">Mot de passe</label>
+            <div class="input-icon" style="position:relative"><span class="mi">lock</span>
+              <input class="input" id="mp" type="password" autocomplete="current-password" placeholder="••••••••" required>
+              <button type="button" class="pwd-toggle" data-pwd="mp" aria-label="Afficher le mot de passe"><span class="mi mi-sm">visibility</span></button></div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg btn-block" id="valider"><span class="mi">login</span>Se connecter</button>
+        </form>
+        <div class="auth-links"><span class="muted">Mot de passe oublié ? Adressez-vous au chef de cellule.</span></div>
+      </div>
+    </section>
+  </div>
+  <script src="/config.js"></script>
+  <script src="/js/core/gestreb.js"></script>
+  <script>
+    (function () {
+      var b = document.querySelector('[data-pwd]');
+      b.addEventListener('click', function () {
+        var i = document.getElementById('mp');
+        i.type = i.type === 'password' ? 'text' : 'password';
+        b.querySelector('.mi').textContent = i.type === 'password' ? 'visibility' : 'visibility_off';
+      });
+      var suite = new URLSearchParams(location.search).get('suite') || '/carte.html';
+      if (!/^\/[^/]/.test(suite)) suite = '/carte.html';
+      document.getElementById('form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var btn = document.getElementById('valider');
+        btn.disabled = true;
+        document.getElementById('erreur').classList.add('hidden');
+        try {
+          var r = await GR.api('/auth/login', { method: 'POST', silencieux: true, body: { email: document.getElementById('email').value.trim(), password: document.getElementById('mp').value } });
+          GR.jeton.set(r.token);
+          location.href = suite;
+        } catch (err) {
+          document.getElementById('erreur-texte').textContent = err.status ? err.message : 'Serveur injoignable. Réessayez dans un instant (le serveur peut mettre 50 s à démarrer).';
+          document.getElementById('erreur').classList.remove('hidden');
+          btn.disabled = false;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

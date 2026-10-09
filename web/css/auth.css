@@ -1,0 +1,220 @@
+/* Pages d'authentification (connexion / inscription / erreurs) */
+.auth {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  background: #fff;
+}
+.auth-visual {
+  position: relative;
+  overflow: hidden;
+  color: #ecfdf5;
+  background:
+    linear-gradient(160deg, rgb(5 46 28 / 0.92) 0%, rgb(11 59 38 / 0.82) 45%, rgb(21 128 61 / 0.7) 100%),
+    url('/img/paa.jpeg') center / cover no-repeat;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px 48px;
+}
+.auth-visual .brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #fff;
+  text-decoration: none;
+}
+.auth-visual .brand img {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: #fff;
+  object-fit: cover;
+}
+.auth-visual .brand strong {
+  display: block;
+  font-size: 20px;
+}
+.auth-visual .brand small {
+  color: #86efac;
+}
+.auth-visual h2 {
+  color: #fff;
+  font-size: clamp(26px, 3vw, 36px);
+  line-height: 1.15;
+  max-width: 520px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+.auth-visual p.lead {
+  margin-top: 14px;
+  max-width: 480px;
+  color: #d1fae5;
+  font-size: 15px;
+}
+.auth-points {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+  max-width: 460px;
+}
+.auth-points div {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 13.5px;
+  color: #d1fae5;
+}
+.auth-points .mi {
+  color: #4ade80;
+  background: rgb(255 255 255 / 0.08);
+  border-radius: 9px;
+  padding: 6px;
+  font-size: 18px;
+}
+.auth-visual .foot {
+  font-size: 12px;
+  color: #a7f3d0;
+  opacity: 0.8;
+}
+.auth-form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background: var(--gray-50);
+}
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+}
+.auth-card.wide {
+  max-width: 560px;
+}
+.auth-card h1 {
+  font-size: 26px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+.auth-card .intro {
+  color: var(--text-muted);
+  margin: 6px 0 24px;
+}
+.auth-card form {
+  display: grid;
+  gap: 16px;
+}
+.auth-card .input,
+.auth-card .select {
+  height: 42px;
+  font-size: 14px;
+}
+.auth-card .input-icon .input {
+  padding-left: 38px;
+}
+.auth-card input[type='password'],
+.auth-card input[data-pwd-visible] {
+  padding-right: 42px;
+}
+.pwd-toggle {
+  position: absolute;
+  right: 8px;
+  z-index: 2;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+}
+.pwd-toggle:hover {
+  color: var(--gray-700);
+}
+.auth-links {
+  margin-top: 22px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.auth-links a {
+  font-weight: 600;
+}
+.mobile-brand {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.mobile-brand img {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+.strength {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+.strength i {
+  flex: 1;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--gray-200);
+}
+.strength[data-n='1'] i:nth-child(-n + 1) {
+  background: var(--danger);
+}
+.strength[data-n='2'] i:nth-child(-n + 2) {
+  background: var(--warning);
+}
+.strength[data-n='3'] i:nth-child(-n + 3) {
+  background: #84cc16;
+}
+.strength[data-n='4'] i:nth-child(-n + 4) {
+  background: var(--success);
+}
+@media (max-width: 900px) {
+  .auth {
+    grid-template-columns: 1fr;
+  }
+  .auth-visual {
+    display: none;
+  }
+  .mobile-brand {
+    display: flex;
+  }
+}
+
+/* Page d'erreur */
+.error-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(circle at 20% 10%, #dcfce7 0, transparent 40%), var(--gray-50);
+  text-align: center;
+}
+.error-page .code {
+  font-size: 88px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, var(--forest-800), var(--forest-500));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.error-page h1 {
+  font-size: 22px;
+  margin-top: 8px;
+}
+.error-page p {
+  color: var(--text-muted);
+  margin: 8px auto 24px;
+  max-width: 440px;
+}

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tableau de bord · CRLOI Gôh</title>
+  <meta name="theme-color" content="#0b3b26">
+  <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
+  <link rel="stylesheet" href="/css/fonts.css">
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/stats.css">
+  <link rel="stylesheet" href="/css/crloi.css">
+</head>
+<body>
+<main class="app-main" id="contenu">
+
+  <!-- Filtres -->
+  <section class="card filtres-stats no-print" aria-label="Critères de sélection">
+    <div class="card-body">
+      <div class="filtres-grille">
+        <div class="field"><label>Départements</label>
+          <div class="chips" id="f-departements">
+            <label class="chip on"><input type="checkbox" value="Gagnoa" checked>Gagnoa</label>
+            <label class="chip on"><input type="checkbox" value="Oumé" checked>Oumé</label>
+          </div>
+        </div>
+        <div class="field"><label>Domaine</label>
+          <div class="chips" id="f-domaines">
+            <label class="chip on"><input type="checkbox" value="rural" checked>Rural</label>
+            <label class="chip on"><input type="checkbox" value="foret_classee" checked>Forêts classées</label>
+          </div>
+        </div>
+        <div class="field"><label>Sous-préfectures</label><div id="f-sp"></div></div>
+        <div class="field"><label>Situation au</label>
+          <div class="row"><input class="input" type="date" id="f-date"><button class="btn btn-icon" id="f-aujourdhui" title="Aujourd'hui"><span class="mi">today</span></button></div>
+        </div>
+        <div class="field"><label>Période des graphiques depuis</label><input class="input" type="date" id="f-debut"></div>
+      </div>
+      <div class="row-wrap mt-3">
+        <div id="filtres-actifs" class="chips"></div>
+        <div class="row" style="margin-left:auto">
+          <button class="btn btn-ghost" id="reinitialiser"><span class="mi">restart_alt</span>Réinitialiser</button>
+          <a class="btn" href="/carte.html" id="voir-carte"><span class="mi">map</span>Voir sur la carte</a>
+          <button class="btn" id="imprimer"><span class="mi">print</span>Imprimer</button>
+          <div class="user-menu">
+            <button class="btn btn-primary" data-dropdown="menu-export"><span class="mi">download</span>Exporter</button>
+            <div class="dropdown" id="menu-export">
+              <button class="dd-item" data-export="xlsx"><span class="mi">grid_on</span>Classeur Excel complet</button>
+              <button class="dd-item" data-export="csv"><span class="mi">description</span>Liste des sites (CSV)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="print-only print-titre">
+    <h1>Lutte contre l'orpaillage illégal — Région du Gôh</h1>
+    <p id="print-criteres"></p>
+  </div>
+
+  <!-- Indicateurs -->
+  <section class="kpis" id="kpis" aria-label="Indicateurs clés">
+    <div class="kpi"><div class="skeleton" style="width:100%;height:46px"></div></div><div class="kpi"><div class="skeleton" style="width:100%;height:46px"></div></div>
+    <div class="kpi"><div class="skeleton" style="width:100%;height:46px"></div></div><div class="kpi"><div class="skeleton" style="width:100%;height:46px"></div></div>
+  </section>
+
+  <!-- Graphiques -->
+  <section class="grid grid-3 stats-grille">
+    <article class="card span-2">
+      <div class="card-header"><h2>Évolution du statut des sites</h2><span class="sub">situation en fin de semaine · cliquer une semaine pour s'y placer</span>
+        <div class="actions"><div class="segmented" data-bascule="evolution"><button class="active" data-v="bar">Barres</button><button data-v="area">Aires</button></div></div>
+      </div>
+      <div class="card-body"><div id="g-evolution" class="chart"></div></div>
+    </article>
+    <article class="card">
+      <div class="card-header"><h2>Situation au <span id="t-date">—</span></h2></div>
+      <div class="card-body"><div id="g-statuts" class="chart"></div></div>
+    </article>
+
+    <article class="card span-2">
+      <div class="card-header"><h2>Contrôles de terrain et tentatives de reprise</h2><span class="sub">visites consignées dans les BRQ, par semaine</span></div>
+      <div class="card-body"><div id="g-controles" class="chart"></div></div>
+    </article>
+    <article class="card">
+      <div class="card-header"><h2>Objectifs du plan d'action</h2></div>
+      <div class="card-body"><div id="g-objectifs" class="chart"></div></div>
+    </article>
+
+    <article class="card span-3">
+      <div class="card-header"><h2>Sites par sous-préfecture</h2><span class="sub">statut à la date de situation</span>
+        <div class="actions"><div class="segmented" data-bascule="territoire"><button class="active" data-v="bar">Barres</button><button data-v="treemap">Mosaïque</button></div></div>
+      </div>
+      <div class="card-body"><div id="g-territoire" class="chart"></div></div>
+    </article>
+
+    <article class="card span-2">
+      <div class="card-header"><h2>Matériel saisi et personnes interpellées</h2><span class="sub">par semaine (tuyaux exclus, comptés en mètres)</span></div>
+      <div class="card-body"><div id="g-saisies" class="chart"></div></div>
+    </article>
+    <article class="card">
+      <div class="card-header"><h2>Matériel saisi par type</h2><span class="sub" id="sub-saisies"></span></div>
+      <div class="card-body"><div id="g-saisies-type" class="chart"></div></div>
+    </article>
+
+    <article class="card span-2">
+      <div class="card-header"><h2>Régularité des BRQ</h2><span class="sub">jours couverts par un bulletin, semaine par semaine</span></div>
+      <div class="card-body"><div id="g-brq" class="chart"></div></div>
+    </article>
+    <article class="card">
+      <div class="card-header"><h2>Domaine rural et forêts classées</h2></div>
+      <div class="card-body"><div id="g-domaines" class="chart"></div></div>
+    </article>
+
+    <article class="card span-2">
+      <div class="card-header"><h2>Cours d'eau impactés</h2><span class="sub">longueur dans la région (km) selon l'intensité</span></div>
+      <div class="card-body"><div id="g-cours" class="chart"></div></div>
+    </article>
+    <article class="card">
+      <div class="card-header"><h2>Fiches de renseignement</h2><span class="sub" id="sub-fiches"></span></div>
+      <div class="card-body"><div id="g-fiches" class="chart"></div></div>
+    </article>
+  </section>
+
+  <!-- Tableau croisé -->
+  <section class="card mt-4">
+    <div class="card-header">
+      <span class="mi" style="color:var(--primary)">pivot_table_chart</span><h2>Tableau croisé dynamique</h2>
+      <div class="actions row-wrap no-print">
+        <label class="muted" style="font-size:12px">Lignes</label>
+        <select class="select sm" id="tc-lignes" style="width:auto"><option value="sous_prefecture">Sous-préfecture</option><option value="departement">Département</option><option value="domaine">Domaine</option><option value="foret">Forêt classée</option><option value="cours_eau">Cours d'eau</option><option value="statut">Statut</option></select>
+        <label class="muted" style="font-size:12px">Colonnes</label>
+        <select class="select sm" id="tc-colonnes" style="width:auto"><option value="statut">Statut</option><option value="departement">Département</option><option value="domaine">Domaine</option><option value="priorite">Priorité</option></select>
+        <label class="muted" style="font-size:12px">Valeur</label>
+        <select class="select sm" id="tc-mesure" style="width:auto"><option value="sites">Nombre de sites</option><option value="superficie">Superficie (ha)</option><option value="visites">Visites (période)</option><option value="tentatives">Tentatives de reprise (période)</option><option value="interpelles">Interpellés (période)</option></select>
+        <button class="btn btn-sm" id="tc-export"><span class="mi">grid_on</span>Excel</button>
+      </div>
+    </div>
+    <div class="card-body flush"><div class="table-wrap" id="tableau-croise" style="max-height:480px"></div></div>
+  </section>
+
+  <!-- Sites -->
+  <section class="card mt-4">
+    <div class="card-header"><span class="mi" style="color:var(--primary)">list_alt</span><h2>Sites de la sélection</h2><span class="badge" id="nb-liste">0</span>
+      <div class="actions no-print"><div class="input-icon" style="width:240px"><span class="mi">search</span><input class="input sm" id="liste-recherche" type="search" placeholder="Filtrer la liste"></div></div>
+    </div>
+    <div class="card-body flush"><div class="table-wrap" id="liste-sites" style="max-height:520px"></div></div>
+  </section>
+</main>
+<script src="/config.js"></script>
+<script src="/vendor/proj4/proj4.js"></script>
+<script src="/vendor/apexcharts/apexcharts.min.js"></script>
+<script src="/js/core/gestreb.js"></script>
+<script src="/js/core/crloi.js"></script>
+<script src="/js/pages/tableau-de-bord.js"></script>
+</body>
+</html>

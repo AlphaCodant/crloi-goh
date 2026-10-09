@@ -52,7 +52,7 @@ export default function Hebdo() {
         <div className="card grid">
           <div className="row" style={{ justifyContent: "space-between" }}>
             <h2>Semaine du {frDate(week)} au {frDate(addDays(week, 6))}</h2>
-            {rep && rep.valide ? <span className="pill ok">Validé le {frDate(rep.date_validation)}</span> : <span className="pill">{rep ? "Brouillon" : "Non rédigé"}</span>}
+            {rep && rep.valide ? <span className="badge green">Validé le {frDate(rep.date_validation)}</span> : <span className="badge">{rep ? "Brouillon" : "Non rédigé"}</span>}
           </div>
           {w ? (
             <div className="kpis" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))" }}>
@@ -63,7 +63,7 @@ export default function Hebdo() {
             </div>
           ) : <div className="muted">Aucune donnée pour cette semaine.</div>}
           {w && (
-            <div className="legend">
+            <div className="hebdo-legende">
               <div className="muted" style={{ fontSize: 12.5 }}>Statut des sites en fin de semaine</div>
               {STATUT_ORDER.filter((k) => w.par_statut[k]).map((k) => <div key={k}><span className="dot" style={{ background: STATUT_HEX[k] }} /><span style={{ flex: 1 }}>{STATUT_LABEL[k]}</span><b>{w.par_statut[k]}</b></div>)}
             </div>
@@ -81,10 +81,10 @@ export default function Hebdo() {
           <label className="f">Synthèse de la semaine<textarea value={form.synthese} disabled={rep && rep.valide} onChange={(e) => setForm({ ...form, synthese: e.target.value })} style={{ minHeight: 140 }} /></label>
           <label className="f">Difficultés rencontrées<textarea value={form.difficultes} disabled={rep && rep.valide} onChange={(e) => setForm({ ...form, difficultes: e.target.value })} /></label>
           <label className="f">Recommandations au comité<textarea value={form.recommandations} disabled={rep && rep.valide} onChange={(e) => setForm({ ...form, recommandations: e.target.value })} /></label>
-          {msg && <div className="okmsg">{msg}</div>}
-          {err && <div className="err">{err}</div>}
+          {msg && <div className="alert success">{msg}</div>}
+          {err && <div className="alert error">{err}</div>}
           <div className="row" style={{ justifyContent: "flex-end" }}>
-            {!(rep && rep.valide) && <button className="btn primary" type="button" onClick={save}>Enregistrer</button>}
+            {!(rep && rep.valide) && <button className="btn btn-primary" type="button" onClick={save}>Enregistrer</button>}
             {user.role === "chef" && rep && !rep.valide && <button className="btn" type="button" onClick={() => validate(true)}>Valider</button>}
             {user.role === "chef" && rep && rep.valide && <button className="btn" type="button" onClick={() => validate(false)}>Rouvrir</button>}
           </div>

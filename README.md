@@ -2,12 +2,20 @@
 
 Outil de la cellule renseignement du Comité Régional de Lutte contre l'Orpaillage Illégal de la région du Gôh.
 
+## Interface
+
+L'interface reprend le système de design et le géoportail de **GestReb** (branche `optimise_gestreb`) :
+OpenLayers 10 (version complète copiée dans `public/vendor` au build), ApexCharts, polices Inter et Material Icons,
+panneau Couches / Filtres / Analyse / Requête, outils de mesure, de sélection et d'annotation, table attributaire
+exportable (CSV, Excel, GeoJSON, KML), impression et export PNG. Les couches de référence (19 forêts classées,
+limite du CG Gagnoa, Côte d'Ivoire) proviennent de GestReb.
+
 ## Contenu de la version 1
 
 | Écran | Rôle |
 |---|---|
-| **Carte** | Sites en points (couleur = statut à la date choisie) et contours, cours d'eau, fonds satellite / topographique. Barre temporelle (début, −7 j, rejouer, +7 j, aujourd'hui) pour voir l'avant / maintenant / après. Fiche du site avec son historique daté. |
-| **Tableau de bord** | Taux de neutralisation (cible ≥ 70 %), recolonisation à 3 mois (cible ≤ 10 %), tentatives de reprise sur 30 j, linéaire de cours d'eau impacté, régularité des BRQ. Graphiques par semaine, liés à la carte (même date, même département). |
+| **Carte de situation** | Géoportail GestReb adapté : sites en points et contours colorés selon le statut à la date (ou département, forêt, cours d'eau, ancienneté du constat…), regroupement à petite échelle, carte de chaleur des sites actifs, fiches de renseignement géolocalisées, forêts classées, cours d'eau. Fonds satellite, hybride, Sentinel-2 (EOX), OSM, topographique, relief. Frise temporelle (début, −7 j, rejouer, +7 j, aujourd'hui) pour voir l'avant / maintenant / après. Coordonnées WGS84, DMS, UTM 29N et 30N. |
+| **Tableau de bord** | Sur le modèle des statistiques GestReb : filtres (départements, date de situation, période, domaine, forêts, sous-préfectures), 10 indicateurs (neutralisation ≥ 70 %, recolonisation à 3 mois ≤ 10 %, tentatives, visites, saisies, interpellations, cours d'eau, BRQ…), graphiques hebdomadaires cliquables, frise des sites, tableau croisé dynamique, liste exportable (Excel, CSV). Date et département partagés avec la carte. |
 | **Sites** | Registre, création, import CSV / GeoJSON (WGS84, UTM 29N, UTM 30N), contours, constats datés, alerte si un point tombe hors du Gôh. |
 | **BRQ** | Saisie du bulletin quotidien : visites de sites, constat, matériel saisi, interpellés. Chaque visite met à jour le statut daté du site. |
 | **Rapport hebdo** | Chiffres de la semaine calculés à partir des BRQ, synthèse / difficultés / recommandations, validation par le chef de cellule. |

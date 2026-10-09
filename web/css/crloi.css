@@ -1,0 +1,71 @@
+/* =====================================================================
+   CRLOI GÔH — compléments au système de design GestReb
+   ===================================================================== */
+.badge .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.badge { border: 1px solid transparent; }
+.form-grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.form-grid .span-all { grid-column: 1 / -1; }
+.app-brand img { background: transparent; }
+.chips.wrap { flex-wrap: wrap; }
+.pill-n { font-variant-numeric: tabular-nums; font-weight: 700; }
+
+/* Historique daté d'un site */
+.timeline { list-style: none; margin: 0; padding: 0; position: relative; }
+.timeline::before { content: ""; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 2px; background: var(--gray-200); }
+.timeline li { position: relative; padding: 0 0 12px 26px; }
+.timeline li::before { content: ""; position: absolute; left: 1px; top: 4px; width: 14px; height: 14px; border-radius: 50%; background: var(--c, #94a3b8); border: 3px solid #fff; box-shadow: 0 0 0 1px var(--gray-300); }
+.timeline li.futur { opacity: .45; }
+.timeline li.courant::before { box-shadow: 0 0 0 3px rgb(22 163 74 / .35); }
+.timeline .t-date { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.timeline .t-note { font-size: 12.5px; color: var(--text); margin-top: 2px; }
+
+/* Grille de saisie des matériels */
+.saisies-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.saisies-grid .field label { font-size: 11.5px; }
+
+/* Visites d'un BRQ */
+.visite { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; background: var(--gray-25); display: grid; gap: 10px; }
+.visite-head { display: flex; align-items: center; gap: 8px; }
+.visite-head strong { color: var(--text-strong); }
+
+/* Cotation des fiches */
+.cotation { font-family: var(--mono); font-weight: 700; letter-spacing: .02em; }
+.segmented.wrap { flex-wrap: wrap; height: auto; }
+
+/* ---------------- Barre temporelle du géoportail ---------------- */
+.timebar {
+  position: absolute; z-index: 5; bottom: 38px; left: 50%; transform: translateX(-50%);
+  width: min(560px, calc(100% - 540px)); min-width: 340px;
+  background: #fff; border-radius: 12px; box-shadow: var(--shadow); padding: 8px 12px 6px;
+  display: grid; gap: 4px;
+}
+.timebar .tb-head { display: flex; align-items: center; gap: 10px; }
+.timebar .tb-date { display: grid; line-height: 1.1; min-width: 92px; }
+.timebar .tb-date small { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+.timebar .tb-date strong { font-size: 15px; color: var(--text-strong); font-variant-numeric: tabular-nums; }
+.timebar .tb-btns { display: flex; gap: 4px; margin-left: auto; }
+.map-btn.sm { width: 30px; height: 30px; border-radius: 8px; box-shadow: none; border: 1px solid var(--border); }
+.map-btn.sm .mi { font-size: 18px; }
+.timebar .tb-track { position: relative; height: 26px; }
+.timebar .tb-ticks { position: absolute; left: 8px; right: 8px; top: 2px; height: 8px; pointer-events: none; }
+.timebar .tb-ticks i { position: absolute; top: 0; width: 3px; height: 8px; margin-left: -1.5px; border-radius: 2px; opacity: .85; }
+.timebar input[type=range] { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; accent-color: var(--primary); margin: 0; }
+.timebar .tb-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--gray-600); font-variant-numeric: tabular-nums; gap: 8px; }
+.timebar .tb-scale .muted { text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timebar.collapsed .tb-body { display: none; }
+.timebar.collapsed .tb-replier .mi { transform: rotate(180deg); }
+body.drawer-open .timebar { display: none; }
+@media (max-width: 1100px) {
+  .timebar { left: 10px; right: 10px; transform: none; width: auto; min-width: 0; bottom: 34px; }
+  #map .legend { bottom: 132px; }
+  .ol-overviewmap { display: none; }
+}
+@media (max-width: 900px) {
+  .tools-bar { bottom: auto !important; top: 10px !important; left: 56px !important; transform: none !important; overflow-x: auto; max-width: calc(100% - 112px); }
+  .timebar .tb-date { min-width: 78px; }
+}
+
+/* Marqueur de site dans les listes */
+.site-dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--gray-300); flex: none; }
+.popup-hist { margin-top: 10px; }
+.popup-hist h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: 0 0 6px; }

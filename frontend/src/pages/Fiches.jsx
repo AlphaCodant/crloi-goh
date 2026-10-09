@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import { api, frDate, isoToday } from "../api";
 import { CoordFields, Modal, coordOrNull } from "../components/ui";
@@ -21,8 +22,19 @@ export default function Fiches() {
   const [open, setOpen] = useState(null);
   const [q, setQ] = useState("");
   const [st, setSt] = useState("");
-  const load = () => Promise.all([api("/fiches"), api("/sites")]).then(([f, s]) => { setFiches(f); setSites(s); });
-  useEffect(() => { load(); }, []);
+  const [params] = useSearchParams();
+  const load = () => Promise.all([api("/fiches"), api("/sites")]).then(([f, s]) => {
+    setFiches(f);
+    setSites(s);
+    return f;
+  });
+  useEffect(() => {
+    load().then((f) => {
+      const cible = params.get("fiche");
+      if (cible) setOpen(f.find((x) => x.id === cible) || null);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const list = fiches.filter((f) => (!st || f.statut === st) && (!q || [f.numero, f.localite, f.description, f.source_code, f.nature.join(" ")].join(" ").toLowerCase().includes(q.toLowerCase())));
 
   return (
@@ -33,25 +45,25 @@ export default function Fiches() {
           <h1>Fiches de renseignement</h1>
           <p>Les informateurs sont identifiés par un code, jamais par leur nom. Une fiche confirmée peut être rattachée à un site du registre.</p>
         </div>
-        <button className="btn primary" type="button" onClick={() => setCreating(true)}>Nouvelle fiche</button>
+        <button className="btn btn-primary" type="button" onClick={() => setCreating(true)}>Nouvelle fiche</button>
       </div>
       <div className="row" style={{ marginBottom: 12 }}>
         <input type="search" placeholder="Rechercher : n°, localité, code source…" value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: "1 1 240px" }} aria-label="Rechercher" />
         <select value={st} onChange={(e) => setSt(e.target.value)} style={{ width: 220 }} aria-label="Statut"><option value="">Tous les statuts</option>{Object.entries(ST).map(([k, v]) => <option key={k} value={k}>{v[0]}</option>)}</select>
       </div>
-      <div className="table-box">
-        <table>
+      <div className="card table-wrap">
+        <table className="table">
           <thead><tr><th>N° fiche</th><th>Reçue le</th><th>Localité</th><th>Nature</th><th>Cotation</th><th>Priorité</th><th>Statut</th></tr></thead>
           <tbody>
             {list.map((f) => (
-              <tr key={f.id} className="click" tabIndex={0} onClick={() => setOpen(f)} onKeyDown={(e) => e.key === "Enter" && setOpen(f)}>
+              <tr key={f.id} className="clickable" tabIndex={0} onClick={() => setOpen(f)} onKeyDown={(e) => e.key === "Enter" && setOpen(f)}>
                 <td className="mono" style={{ fontWeight: 600 }}>{f.numero}</td>
                 <td className="num">{frDate(f.date_recu)}</td>
                 <td>{f.localite}<div className="muted" style={{ fontSize: 12 }}>{f.departement}</div></td>
                 <td>{f.nature.join(", ")}</td>
                 <td className="mono">{f.cotation}</td>
-                <td><span className={"pill " + (f.priorite === "urgente" ? "crit" : f.priorite === "importante" ? "warn" : "")}>{f.priorite}</span></td>
-                <td><span className={"pill " + ST[f.statut][1]}>{ST[f.statut][0]}</span></td>
+                <td><span className={"badge " + (f.priorite === "urgente" ? "crit" : f.priorite === "importante" ? "warn" : "")}>{f.priorite}</span></td>
+                <td><span className={"badge " + ST[f.statut][1]}>{ST[f.statut][0]}</span></td>
               </tr>
             ))}
           </tbody>
@@ -69,7 +81,7 @@ function Chips({ options, value, onChange }) {
     <div className="row" style={{ gap: 6 }}>
       {options.map((o) => {
         const on = value.includes(o);
-        return <button key={o} type="button" className="pill" aria-pressed={on} onClick={() => onChange(on ? value.filter((x) => x !== o) : [...value, o])}
+        return <button key={o} type="button" className="badge" aria-pressed={on} onClick={() => onChange(on ? value.filter((x) => x !== o) : [...value, o])}
           style={{ cursor: "pointer", background: on ? "var(--accent-soft)" : "var(--field)", borderColor: on ? "var(--accent)" : "var(--line)", fontWeight: on ? 600 : 500 }}>{o}</button>;
       })}
     </div>
@@ -120,8 +132,8 @@ function NewFiche({ onClose, onSaved }) {
           <label className="f">Suite proposée<select value={v.suite} onChange={f("suite")}>{SUITES.map((s) => <option key={s}>{s}</option>)}</select></label>
         </div>
         <label className="f">Description de l'information<textarea value={v.description} onChange={f("description")} required /></label>
-        {err && <div className="err">{err}</div>}
-        <div className="row" style={{ justifyContent: "flex-end" }}><button className="btn primary" type="submit">Enregistrer la fiche</button></div>
+        {err && <div className="alert error">{err}</div>}
+        <div className="row" style={{ justifyContent: "flex-end" }}><button className="btn btn-primary" type="submit">Enregistrer la fiche</button></div>
       </form>
     </Modal>
   );
@@ -148,7 +160,7 @@ function FicheModal({ f, sites, onClose, onSaved }) {
           {row("Personnes estimées", f.personnes != null ? String(f.personnes) : null)}
           {row("Suite proposée", f.suite)}
         </div>
-        {f.coord_alerte && <div className="pill warn" style={{ whiteSpace: "normal" }}>{f.coord_alerte}</div>}
+        {f.coord_alerte && <div className="badge amber" style={{ whiteSpace: "normal" }}>{f.coord_alerte}</div>}
         <div className="card" style={{ background: "var(--field)", whiteSpace: "pre-wrap" }}>{f.description}</div>
         <div className="card grid">
           <h3>Suivi</h3>
@@ -157,8 +169,8 @@ function FicheModal({ f, sites, onClose, onSaved }) {
             <label className="f">Site du registre concerné<select value={siteId} onChange={(e) => setSiteId(e.target.value)}><option value="">Aucun</option>{sites.map((s) => <option key={s.id} value={s.id}>{s.code} · {s.localite}</option>)}</select></label>
           </div>
           <label className="f">Note de suivi<textarea value={note} onChange={(e) => setNote(e.target.value)} style={{ minHeight: 60 }} /></label>
-          {err && <div className="err">{err}</div>}
-          <div className="row" style={{ justifyContent: "flex-end" }}><button className="btn primary" type="button" onClick={save}>Mettre à jour</button></div>
+          {err && <div className="alert error">{err}</div>}
+          <div className="row" style={{ justifyContent: "flex-end" }}><button className="btn btn-primary" type="button" onClick={save}>Mettre à jour</button></div>
         </div>
         <div className="timeline">
           {[...f.historique].reverse().map((h, i) => (

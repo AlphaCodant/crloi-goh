@@ -23,15 +23,15 @@ export default function Equipe() {
         <div><div className="eyebrow">Administration</div><h1>Équipe de la cellule</h1><p>Seuls les comptes listés ici peuvent se connecter.</p></div>
       </div>
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", alignItems: "start" }}>
-        <div className="table-box">
-          <table>
+        <div className="card table-wrap">
+          <table className="table">
             <thead><tr><th>Nom</th><th>Rôle</th><th>Statut</th><th></th></tr></thead>
             <tbody>{users.map((u) => (
               <tr key={u.id}>
                 <td>{u.grade ? u.grade + " " : ""}{u.full_name}<div className="muted" style={{ fontSize: 12 }}>{u.email}</div></td>
                 <td>{u.role_label}</td>
-                <td>{u.active ? <span className="pill ok">Actif</span> : <span className="pill">Désactivé</span>}</td>
-                <td>{u.id !== user.id && <button className="btn small" type="button" onClick={() => api(`/users/${u.id}/active`, { method: "POST", params: { active: !u.active } }).then(load)}>{u.active ? "Désactiver" : "Réactiver"}</button>}</td>
+                <td>{u.active ? <span className="badge green">Actif</span> : <span className="badge">Désactivé</span>}</td>
+                <td>{u.id !== user.id && <button className="btn btn-sm" type="button" onClick={() => api(`/users/${u.id}/active`, { method: "POST", params: { active: !u.active } }).then(load)}>{u.active ? "Désactiver" : "Réactiver"}</button>}</td>
               </tr>
             ))}</tbody>
           </table>
@@ -45,9 +45,9 @@ export default function Equipe() {
             <label className="f">Rôle<select value={v.role} onChange={f("role")}><option value="analyste">Analyste</option><option value="cartographe">Cartographe</option><option value="chef">Chef de cellule</option></select></label>
             <label className="f">Mot de passe provisoire <small>8 caractères minimum</small><input type="text" value={v.password} onChange={f("password")} minLength={8} required /></label>
           </div>
-          {msg && <div className="okmsg">{msg}</div>}
-          {err && <div className="err">{err}</div>}
-          <div className="row" style={{ justifyContent: "flex-end" }}><button className="btn primary" type="submit">Créer le compte</button></div>
+          {msg && <div className="alert success">{msg}</div>}
+          {err && <div className="alert error">{err}</div>}
+          <div className="row" style={{ justifyContent: "flex-end" }}><button className="btn btn-primary" type="submit">Créer le compte</button></div>
         </form>
       </div>
     </div>
