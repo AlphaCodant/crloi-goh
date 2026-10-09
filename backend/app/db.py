@@ -7,7 +7,19 @@ from sqlalchemy.orm import DeclarativeBase
 
 
 def _database_url() -> str:
-    url = os.environ["DATABASE_URL"]
+    raw = os.environ.get("DATABASE_URL", "")
+    # Tolère les copier-coller : espaces, retours à la ligne, guillemets, commande « psql … » entière.
+    url = raw.strip().strip("'\"").strip()
+    if url.startswith("psql "):
+        url = url[5:].strip().strip("'\"").strip()
+    url = "".join(url.split())
+    if not url.startswith(("postgres://", "postgresql://", "postgresql+asyncpg://")):
+        # On décrit le problème sans jamais afficher la valeur (elle contient le mot de passe).
+        debut = url.split(":", 1)[0][:20] if url else "(vide)"
+        raise RuntimeError(
+            "DATABASE_URL invalide : elle doit commencer par postgresql:// "
+            f"(valeur reçue commençant par « {debut} »). Copiez l'« Internal Database URL » "
+            "de la base Render, onglet Connect.")
     # Render fournit « postgresql://… » : on force le pilote asyncpg et on retire « sslmode ».
     if url.startswith(("postgres://", "postgresql://")):
         url = "postgresql+asyncpg://" + url.split("://", 1)[1]
