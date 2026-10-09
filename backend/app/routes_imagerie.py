@@ -86,6 +86,19 @@ async def gee_couche(data: CoucheIn, _u=Depends(current_user)):
         raise HTTPException(502, f"Earth Engine : {_message_gee(e)}")
 
 
+@router.get("/gee/tuiles/{cid}/{z}/{x}/{y}")
+async def gee_tuile(cid: str, z: int, x: int, y: int, _u=Depends(current_user)):
+    if z < 0 or z > 18 or not (0 <= x < 2 ** z and 0 <= y < 2 ** z):
+        raise HTTPException(400, "Tuile invalide")
+    try:
+        png = await run_in_threadpool(gee.tuile, cid, z, x, y)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"Earth Engine : {_message_gee(e)}")
+    if png is None:
+        raise HTTPException(410, "Couche expirée : affichez-la de nouveau")
+    return Response(png, media_type="image/png", headers={"Cache-Control": "private, max-age=43200"})
+
+
 # ======================================================== Zones suspectes
 def s_cible(c: M.Cible) -> dict:
     return {

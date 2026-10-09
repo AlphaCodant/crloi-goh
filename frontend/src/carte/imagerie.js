@@ -169,8 +169,28 @@ export function initImagerie(C, { racine, ecoute, signal }) {
   let nGee = 0;
   async function ajouterCoucheGee(def, { silencieux = false } = {}) {
     const res = await api("/gee/couche", { method: "POST", body: def });
+    const source = res.proxy
+      ? // Tuiles calculées par le serveur de l'application (chargement authentifié)
+        new ol.source.XYZ({
+          url: urlApi(res.url),
+          maxZoom: 17,
+          attributions: `${res.capteur} via Google Earth Engine`,
+          tileLoadFunction: (tile, src) => {
+            fetch(src, { headers: { Authorization: `Bearer ${getToken()}` }, signal })
+              .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
+              .then((b) => {
+                const u = URL.createObjectURL(b);
+                const img = tile.getImage();
+                img.onload = () => URL.revokeObjectURL(u);
+                img.src = u;
+              })
+              .catch(() => tile.setState(3));
+          },
+        })
+      : new ol.source.XYZ({ url: res.url, crossOrigin: "anonymous", maxZoom: 18, attributions: `${res.capteur} via Google Earth Engine` });
     const couche = new ol.layer.Tile({
-      source: new ol.source.XYZ({ url: res.url, crossOrigin: "anonymous", maxZoom: 18, attributions: `${res.capteur} via Google Earth Engine` }),
+      source,
+      preload: 0,
       opacity: def.produit.match(/couleurs|swir/) ? 1 : 0.8,
       zIndex: 5,
     });

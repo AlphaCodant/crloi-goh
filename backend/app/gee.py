@@ -18,11 +18,17 @@ import json
 import os
 import threading
 import time
+import uuid
+from collections import OrderedDict
 from typing import Optional
 
 _init_ok = False
 _verrou = threading.Lock()
 _cache_couches: dict = {}  # clé -> (expiration, résultat)
+_images_tuiles: dict = {}  # identifiant -> (expiration, ee.Image visualisée) pour le calcul des tuiles par le serveur
+_tuiles: "OrderedDict[str, bytes]" = OrderedDict()  # cache des tuiles PNG déjà calculées
+TUILES_MAX = 1500
+R_MERCATOR = 20037508.342789244
 
 # Emprise de travail : région du Gôh avec une marge (les couches sont découpées sur cette emprise).
 EMPRISE_GOH = [-6.55, 5.45, -4.95, 6.85]  # ouest, sud, est, nord
@@ -192,9 +198,21 @@ def couche(produit: str, du: str, au: str, ref_du: Optional[str] = None, ref_au:
             ind = ind.updateMask(_indices(img).select("mndwi").gt(0))
         image = ind
         vis["palette"] = p["palette"]
-    m = image.clip(region).getMapId(vis)
+    visu = image.clip(region).visualize(**vis)
+    try:
+        url = visu.getMapId({})["tile_fetcher"].url_format
+        proxy = False
+    except Exception as e:  # noqa: BLE001
+        if "maps.create" not in str(e) and "PERMISSION" not in str(e).upper():
+            raise
+        # Sans le droit « earthengine.maps.create », le serveur calcule lui-même les tuiles (computePixels)
+        cid = uuid.uuid4().hex
+        _images_tuiles[cid] = (time.time() + 12 * 3600, visu)
+        url = f"/gee/tuiles/{cid}/{{z}}/{{x}}/{{y}}"
+        proxy = True
     res = {
-        "url": m["tile_fetcher"].url_format,
+        "url": url,
+        "proxy": proxy,
         "produit": produit,
         "libelle": p["libelle"],
         "capteur": "Landsat 5-9 (30 m)" if capt == "landsat" else "Sentinel-2 (10 m)",
@@ -205,6 +223,38 @@ def couche(produit: str, du: str, au: str, ref_du: Optional[str] = None, ref_au:
     }
     _cache_couches[cle] = (time.time() + 4 * 3600, res)
     return res
+
+
+def tuile(cid: str, z: int, x: int, y: int) -> Optional[bytes]:
+    """Calcule une tuile 256 × 256 (Web Mercator) d'une couche, sans passer par getMapId."""
+    cle = f"{cid}/{z}/{x}/{y}"
+    if cle in _tuiles:
+        _tuiles.move_to_end(cle)
+        return _tuiles[cle]
+    ref = _images_tuiles.get(cid)
+    if not ref or ref[0] < time.time():
+        return None
+    _init()
+    import ee
+
+    taille = 2 * R_MERCATOR / (2 ** z)
+    x0 = -R_MERCATOR + x * taille
+    y1 = R_MERCATOR - y * taille
+    px = taille / 256
+    png = ee.data.computePixels({
+        "expression": ref[1],
+        "fileFormat": "PNG",
+        "grid": {
+            "dimensions": {"width": 256, "height": 256},
+            "affineTransform": {"scaleX": px, "shearX": 0, "translateX": x0, "shearY": 0, "scaleY": -px, "translateY": y1},
+            "crsCode": "EPSG:3857",
+        },
+    })
+    with _verrou:
+        _tuiles[cle] = png
+        while len(_tuiles) > TUILES_MAX:
+            _tuiles.popitem(last=False)
+    return png
 
 
 # ------------------------------------------------------------------ prospection
