@@ -235,10 +235,24 @@ def detecter(zone: dict, ref: tuple[str, str], recent: tuple[str, str], params: 
     cand = cand.updateMask(cand.connectedPixelCount(maxSize=1024, eightConnected=True).gte(px_min))
     eau = gsw.select("max_extent").unmask(0).gt(0).Or(i_rec.select("mndwi").gt(0.2))
     dist = eau.fastDistanceTransform(512).sqrt().multiply(ee.Image.pixelArea().sqrt()).rename("dist_eau_m")
-    vect = cand.reduceToVectors(geometry=aoi, scale=10, crs="EPSG:32630", geometryType="polygon", eightConnected=True,
-                                labelProperty="label", maxPixels=1e10, tileScale=4).limit(max_zones)
     pile = dndvi.addBands(i_rec.select(["bsi", "mndwi", "ndti"])).addBands(dist)
-    stats = pile.reduceRegions(collection=vect, reducer=ee.Reducer.mean(), scale=10, crs="EPSG:32630", tileScale=4).getInfo()
+
+    def vectoriser(echelle: int, morceaux: int):
+        # Une seule passe : la première bande (zone candidate) délimite les polygones,
+        # les bandes suivantes sont moyennées dans chaque polygone.
+        return cand.rename("zone").addBands(pile).reduceToVectors(
+            geometry=aoi, scale=echelle, crs="EPSG:32630", geometryType="polygon", eightConnected=True,
+            labelProperty="zone", reducer=ee.Reducer.mean().forEach(["dndvi", "bsi", "mndwi", "ndti", "dist_eau_m"]),
+            maxPixels=1e13, tileScale=morceaux,
+        ).limit(max_zones).getInfo()
+
+    try:
+        stats = vectoriser(10, 16)
+    except Exception as e:  # noqa: BLE001
+        if "too large" not in str(e) and "memory" not in str(e).lower() and "timed out" not in str(e).lower():
+            raise
+        # Zone très étendue : on repasse à 20 m (polygones un peu moins fins, même détection)
+        stats = vectoriser(20, 16)
 
     def r(v, nd=3):
         return None if v is None else round(float(v), nd)
