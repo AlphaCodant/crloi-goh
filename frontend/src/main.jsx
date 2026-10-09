@@ -16,6 +16,7 @@ import BrqPage from "./pages/BrqPage";
 import Hebdo from "./pages/Hebdo";
 import Fiches from "./pages/Fiches";
 import Equipe from "./pages/Equipe";
+import Missions from "./pages/Missions";
 
 const PAGES = {
   "/tableau-de-bord": ["Tableau de bord", "Évolution des indicateurs à partir des BRQ et des statuts datés des sites"],
@@ -23,6 +24,7 @@ const PAGES = {
   "/brq": ["Bulletins de renseignement quotidiens", "Saisie des visites de sites, constats, saisies et interpellations"],
   "/hebdo": ["Rapports hebdomadaires", "Synthèse de la semaine calculée à partir des BRQ"],
   "/renseignement": ["Fiches de renseignement", "Informations reçues, cotation et suivi de vérification"],
+  "/missions": ["Missions d'éclairage", "Vérification sur le terrain des zones suspectes détectées par satellite ou signalées"],
   "/equipe": ["Équipe de la cellule", "Comptes autorisés à se connecter"],
 };
 
@@ -128,6 +130,11 @@ function Sidebar() {
         {lien("/hebdo", "date_range", "Rapports hebdomadaires")}
         {lien("/renseignement", "policy", "Fiches de renseignement")}
         {lien("/sites", "location_on", "Registre des sites")}
+        <span className="nav-title">Prospection</span>
+        <NavLink to="/carte?onglet=prospection" className="nav-link">
+          <span className="mi">radar</span>Zones suspectes (GEE)
+        </NavLink>
+        {lien("/missions", "assignment", "Missions d'éclairage")}
         {user.role === "chef" && (
           <>
             <span className="nav-title">Administration</span>
@@ -222,6 +229,7 @@ function Shell() {
             <Route path="/brq" element={<BrqPage />} />
             <Route path="/hebdo" element={<Hebdo />} />
             <Route path="/renseignement" element={<Fiches />} />
+            <Route path="/missions" element={<Missions />} />
             {user.role === "chef" && <Route path="/equipe" element={<Equipe />} />}
             <Route path="*" element={<Navigate to="/carte" replace />} />
           </Routes>

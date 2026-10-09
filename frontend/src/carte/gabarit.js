@@ -46,6 +46,8 @@ export function gabarit({ user }) {
         <button data-pane="filtres" role="tab"><span class="mi">filter_alt</span>Filtres<span class="badge solid hidden" id="nb-filtres"></span></button>
         <button data-pane="analyse" role="tab"><span class="mi">palette</span>Analyse</button>
         <button data-pane="requete" role="tab"><span class="mi">manage_search</span>Requête</button>
+        <button data-pane="imagerie" role="tab"><span class="mi">satellite_alt</span>Imagerie</button>
+        <button data-pane="prospection" role="tab"><span class="mi">radar</span>Prospection<span class="badge solid hidden" id="nb-cibles"></span></button>
       </div>
 
       <div class="panel-content">
@@ -57,6 +59,16 @@ export function gabarit({ user }) {
           <div class="panel-section">
             <h3><span class="mi mi-sm">layers</span>Couches de données</h3>
             <div id="liste-couches"></div>
+          </div>
+          <div class="panel-section">
+            <h3><span class="mi mi-sm">edit_location_alt</span>Saisie sur la carte</h3>
+            <div class="row-wrap">
+              <button class="btn btn-sm btn-soft" data-edition="ajout-site"><span class="mi">add_location_alt</span>Ajouter un site</button>
+              <button class="btn btn-sm" data-edition="ajout-site-coord"><span class="mi">pin_drop</span>Par coordonnées</button>
+              <button class="btn btn-sm" data-edition="gerer-cours"><span class="mi">water</span>Cours d'eau</button>
+              <button class="btn btn-sm" data-edition="zone"><span class="mi">crop_free</span>Zone de travail</button>
+            </div>
+            <p class="muted mt-2" style="font-size:12px">Cliquez sur un site pour le modifier, le déplacer, changer son statut, dessiner ou importer son contour, ajouter des images drone ou le supprimer.</p>
           </div>
           <div class="panel-section">
             <h3><span class="mi mi-sm">summarize</span>Situation au <span id="resume-date">—</span></h3>
@@ -140,6 +152,9 @@ export function gabarit({ user }) {
           </div>
           <div class="mt-4" id="requete-resultat"></div>
         </section>
+
+        <section class="panel-pane" data-pane="imagerie" id="pane-imagerie"></section>
+        <section class="panel-pane" data-pane="prospection" id="pane-prospection"></section>
       </div>
       <div class="panel-foot">
         <button class="btn btn-sm grow" id="reinitialiser"><span class="mi">restart_alt</span>Réinitialiser</button>
@@ -164,6 +179,13 @@ export function gabarit({ user }) {
           <button class="map-btn" data-outil="dessin-ligne" title="Annoter : ligne / itinéraire"><span class="mi">timeline</span></button>
           <button class="map-btn" data-outil="dessin-poly" title="Annoter : zone"><span class="mi">format_shapes</span></button>
           <button class="map-btn" data-action="effacer-dessins" title="Effacer mesures et annotations"><span class="mi">cleaning_services</span></button>
+          <span class="sep"></span>
+          <button class="map-btn" data-edition="ajout-site" title="Ajouter un site (clic sur la carte)"><span class="mi">add_location</span></button>
+          <button class="map-btn" data-edition="tracer-cours" title="Tracer un cours d'eau"><span class="mi">water</span></button>
+          <button class="map-btn" data-edition="zone" title="Dessiner une zone de travail"><span class="mi">crop_free</span></button>
+          <button class="map-btn" data-prospection="dessiner-cible" title="Signaler une zone suspecte (dessin)"><span class="mi">report</span></button>
+          <span class="sep"></span>
+          <button class="map-btn" data-action="comparer" title="Comparer avant / après (rideau)"><span class="mi">compare</span></button>
         </div>
         <div class="tool-hint" id="aide-outil"><span id="aide-outil-texte"></span><button id="aide-outil-stop">Terminer (Échap)</button></div>
         <div class="map-loading" id="chargement"><span class="spinner"></span>Chargement des sites…</div>
@@ -187,6 +209,8 @@ export function gabarit({ user }) {
           </div>
         </div>
 
+        <div class="rideau hidden" id="rideau" aria-hidden="true"><div class="rideau-ligne"></div><button class="rideau-poignee" title="Glisser pour comparer"><span class="mi">compare_arrows</span></button>
+          <span class="rideau-etiquette gauche" id="rideau-gauche"></span><span class="rideau-etiquette droite" id="rideau-droite"></span></div>
         <div class="legend" id="legende">
           <div class="legend-head" id="legende-tete"><span class="mi">legend_toggle</span><span id="legende-titre">Légende</span><span class="mi mi-sm" style="margin-left:auto">expand_more</span></div>
           <div class="legend-body" id="legende-corps"></div>

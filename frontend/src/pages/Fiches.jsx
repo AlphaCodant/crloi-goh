@@ -1,4 +1,5 @@
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "../context";
 import React, { useEffect, useState } from "react";
 import { api, frDate, isoToday } from "../api";
 import { CoordFields, Modal, coordOrNull } from "../components/ui";
@@ -71,7 +72,7 @@ export default function Fiches() {
         {!list.length && <div className="empty">{fiches.length ? "Aucune fiche ne correspond." : "Aucune fiche pour l'instant. Les fiches saisies apparaîtront ici, de la plus récente à la plus ancienne."}</div>}
       </div>
       {creating && <NewFiche onClose={() => setCreating(false)} onSaved={() => { setCreating(false); load(); }} />}
-      {open && <FicheModal f={open} sites={sites} onClose={() => setOpen(null)} onSaved={(nf) => { setOpen(nf); load(); }} />}
+      {open && <FicheModal key={open.id + open.historique.length} f={open} sites={sites} onClose={() => setOpen(null)} onSaved={(nf) => { setOpen(nf); load(); }} onDeleted={() => { setOpen(null); load(); }} />}
     </div>
   );
 }
@@ -82,27 +83,43 @@ function Chips({ options, value, onChange }) {
       {options.map((o) => {
         const on = value.includes(o);
         return <button key={o} type="button" className="badge" aria-pressed={on} onClick={() => onChange(on ? value.filter((x) => x !== o) : [...value, o])}
-          style={{ cursor: "pointer", background: on ? "var(--accent-soft)" : "var(--field)", borderColor: on ? "var(--accent)" : "var(--line)", fontWeight: on ? 600 : 500 }}>{o}</button>;
+          style={{ cursor: "pointer", background: on ? "var(--accent-soft)" : "var(--gray-100)", border: `1px solid ${on ? "var(--accent)" : "var(--gray-200)"}`, fontWeight: on ? 600 : 500 }}>{o}</button>;
       })}
     </div>
   );
 }
 
-function NewFiche({ onClose, onSaved }) {
-  const [v, setV] = useState(EMPTY());
+function NewFiche({ onClose, onSaved, initial }) {
+  const [v, setV] = useState(() =>
+    initial
+      ? {
+          ...EMPTY(),
+          ...initial,
+          date_faits: initial.date_faits || "",
+          heure_recu: initial.heure_recu || "",
+          personnes: initial.personnes ?? "",
+          superficie_ha: initial.superficie_ha ?? "",
+          coord: initial.coord_saisie
+            ? { sys: initial.coord_saisie.sys, x: String(initial.coord_saisie.x ?? ""), y: String(initial.coord_saisie.y ?? "") }
+            : { sys: "wgs", x: "", y: "" },
+        }
+      : EMPTY()
+  );
   const [err, setErr] = useState("");
   const f = (k) => (e) => setV({ ...v, [k]: e.target.value });
   async function save(e) {
     e.preventDefault();
     if (!v.nature.length) { setErr("Choisissez au moins une nature d'information."); return; }
     try {
-      await api("/fiches", { method: "POST", body: { ...v, date_faits: v.date_faits || null, coord: coordOrNull(v.coord),
-        personnes: v.personnes === "" ? null : Number(v.personnes), superficie_ha: v.superficie_ha === "" ? null : Number(v.superficie_ha) } });
-      onSaved();
+      const corps = { ...v, date_faits: v.date_faits || null, coord: coordOrNull(v.coord),
+        personnes: v.personnes === "" ? null : Number(v.personnes), superficie_ha: v.superficie_ha === "" ? null : Number(v.superficie_ha) };
+      ["id", "numero", "cotation", "statut", "statut_label", "historique", "lat", "lng", "coord_saisie", "coord_alerte", "created_at", "site_id"].forEach((k) => delete corps[k]);
+      const r = await api(initial ? `/fiches/${initial.id}` : "/fiches", { method: initial ? "PUT" : "POST", body: corps });
+      onSaved(r);
     } catch (x) { setErr(x.message); }
   }
   return (
-    <Modal title="Nouvelle fiche de renseignement" onClose={onClose} wide>
+    <Modal title={initial ? `Modifier ${initial.numero}` : "Nouvelle fiche de renseignement"} onClose={onClose} wide>
       <form className="grid" onSubmit={save}>
         <div className="fgrid">
           <label className="f">Date de réception<input type="date" value={v.date_recu} max={isoToday()} onChange={f("date_recu")} required /></label>
@@ -133,13 +150,17 @@ function NewFiche({ onClose, onSaved }) {
         </div>
         <label className="f">Description de l'information<textarea value={v.description} onChange={f("description")} required /></label>
         {err && <div className="alert error">{err}</div>}
-        <div className="row" style={{ justifyContent: "flex-end" }}><button className="btn btn-primary" type="submit">Enregistrer la fiche</button></div>
+        <div className="row" style={{ justifyContent: "flex-end" }}><button className="btn btn-primary" type="submit">{initial ? "Enregistrer les modifications" : "Enregistrer la fiche"}</button></div>
       </form>
     </Modal>
   );
 }
 
-function FicheModal({ f, sites, onClose, onSaved }) {
+function FicheModal({ f, sites, onClose, onSaved, onDeleted }) {
+  const nav = useNavigate();
+  const { user } = useAuth();
+  const [edition, setEdition] = useState(false);
+  const [suppr, setSuppr] = useState(false);
   const [statut, setStatut] = useState(f.statut);
   const [note, setNote] = useState("");
   const [siteId, setSiteId] = useState(f.site_id || "");
@@ -151,6 +172,19 @@ function FicheModal({ f, sites, onClose, onSaved }) {
   return (
     <Modal title={f.numero} sub={`Reçue le ${frDate(f.date_recu)}${f.heure_recu ? " à " + f.heure_recu : ""} · cotation ${f.cotation}`} onClose={onClose} wide>
       <div className="grid" style={{ gap: 14 }}>
+        <div className="row-wrap">
+          <button className="btn btn-sm" type="button" onClick={() => setEdition(true)}><span className="mi">edit</span>Modifier la fiche</button>
+          {f.lat != null && <button className="btn btn-sm" type="button" onClick={() => nav("/carte")}><span className="mi">map</span>Voir sur la carte</button>}
+          {user.role === "chef" && !suppr && <button className="btn btn-sm btn-soft-danger" type="button" style={{ marginLeft: "auto" }} onClick={() => setSuppr(true)}><span className="mi">delete</span>Supprimer</button>}
+          {suppr && (
+            <span className="row" style={{ marginLeft: "auto" }}>
+              <span className="muted" style={{ fontSize: 13 }}>Supprimer définitivement cette fiche ?</span>
+              <button className="btn btn-sm" type="button" onClick={() => setSuppr(false)}>Non</button>
+              <button className="btn btn-sm btn-danger" type="button" onClick={async () => { try { await api(`/fiches/${f.id}`, { method: "DELETE" }); onDeleted(); } catch (x) { setErr(x.message); } }}>Supprimer</button>
+            </span>
+          )}
+        </div>
+        {edition && <NewFiche initial={f} onClose={() => setEdition(false)} onSaved={(nf) => { setEdition(false); onSaved(nf); }} />}
         <div className="fgrid" style={{ fontSize: 13.5 }}>
           {row("Source", f.source_type + (f.source_code ? " · " + f.source_code : ""))}
           {row("Localisation", [f.localite, f.sous_prefecture, f.departement].filter(Boolean).join(", "))}

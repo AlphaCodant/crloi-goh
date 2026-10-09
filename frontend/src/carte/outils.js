@@ -100,6 +100,8 @@ export function initOutils(C, { racine, ecoute, signal }) {
     if (map.getTargetElement()) map.getTargetElement().style.cursor = "";
   }
 
+  C.arreterOutil = arreterOutil;
+
   function activerOutil(nom) {
     const etaitActif = outil === nom;
     arreterOutil();

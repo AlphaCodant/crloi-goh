@@ -476,3 +476,272 @@ label.f small {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 }
+
+/* =================== Édition, imagerie, prospection =================== */
+.panel-tabs {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.panel-tabs button {
+  font-size: 10.5px;
+  padding-left: 1px;
+  padding-right: 1px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.edit-bar {
+  position: absolute;
+  top: 62px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 120px);
+  padding: 8px 8px 8px 14px;
+  background: #1c1917;
+  color: #fef3c7;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  font-size: 13px;
+}
+.edit-bar.show {
+  display: flex;
+}
+.edit-bar .eb-texte {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.edit-bar .mi {
+  color: #fbbf24;
+}
+.edit-bar .btn .mi {
+  color: inherit;
+}
+.popup-actions.edition {
+  border-top: 1px dashed var(--border);
+  padding-top: 8px;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.popup-actions.edition .btn {
+  padding: 0 8px;
+  font-size: 12px;
+}
+.popup-actions .danger,
+.menu-popup .danger {
+  color: var(--danger);
+}
+details.menu-popup {
+  position: relative;
+}
+details.menu-popup summary {
+  list-style: none;
+  cursor: pointer;
+}
+details.menu-popup summary::-webkit-details-marker {
+  display: none;
+}
+details.menu-popup > div {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  z-index: 3;
+  min-width: 230px;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+}
+details.menu-popup > div button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 7px 9px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+details.menu-popup > div button:hover {
+  background: var(--gray-100);
+}
+
+/* Rideau de comparaison */
+.rideau {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  --x: 50%;
+}
+.rideau-ligne {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--x);
+  width: 3px;
+  margin-left: -1.5px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(15 23 42 / 0.35), 0 0 12px rgb(0 0 0 / 0.35);
+}
+.rideau-poignee {
+  position: absolute;
+  top: 50%;
+  left: var(--x);
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: var(--primary);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: ew-resize;
+  pointer-events: auto;
+  box-shadow: var(--shadow-lg);
+  touch-action: none;
+}
+.rideau-etiquette {
+  position: absolute;
+  top: 62px;
+  max-width: 40%;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgb(15 23 42 / 0.78);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rideau-etiquette.gauche {
+  right: calc(100% - var(--x) + 12px);
+}
+.rideau-etiquette.droite {
+  left: calc(var(--x) + 12px);
+}
+.map-btn.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* Couches GEE */
+.layer.gee .gradient {
+  height: 8px;
+  border-radius: 4px;
+  margin: 6px 4px 2px 30px;
+}
+.layer.gee .gradient-bornes {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 4px 4px 30px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+details.avance summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--gray-600);
+}
+.status-dot.ok {
+  background: var(--success);
+}
+
+/* Listes du panneau */
+.drone-groupe {
+  margin-bottom: 10px;
+}
+.drone-titre {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  margin-bottom: 2px;
+}
+.drone-ligne,
+.analyse-ligne {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--gray-100);
+}
+.drone-ligne .ell {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drone-ligne.grande {
+  padding: 8px 0;
+}
+.analyse-ligne > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.analyse-ligne small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.cible-liste {
+  max-height: 340px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.cible-ligne {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--gray-100);
+  cursor: pointer;
+  font-size: 12.5px;
+}
+.cible-ligne:hover {
+  background: var(--gray-50);
+}
+.cible-ligne.on {
+  background: #fff7ed;
+}
+.cible-ligne > i {
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+  flex: none;
+}
+.cible-ligne .cl-code {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 650;
+  color: var(--text-strong);
+}
+.cible-ligne .cl-code small {
+  display: block;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.mission-carte {
+  padding: 16px;
+  cursor: pointer;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.mission-carte:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
+.mission-carte h3 {
+  font-size: 15px;
+}

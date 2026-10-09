@@ -24,6 +24,25 @@ limite du CG Gagnoa, Côte d'Ivoire) proviennent de GestReb.
 
 Au premier démarrage, la base est remplie avec les 24 sites et les visites du 30/09 au 03/10/2026 du **Rapport n°1 ORPI DREF Gôh** (état des lieux daté du 22/09/2026, date à confirmer) et les 7 cours d'eau recensés.
 
+## Version 2 : édition, imagerie, prospection
+
+| Fonction | Où |
+|---|---|
+| **Tout modifier depuis la carte** | Ajouter un site d'un clic (ou par coordonnées), modifier ses informations et coordonnées, ajouter un constat daté, déplacer le point, dessiner / modifier / importer (GeoJSON, KML, GPX) / supprimer le contour, supprimer le site. Tracer les cours d'eau, dessiner des zones de travail, déplacer les fiches de renseignement. |
+| **Imagerie Earth Engine** | Onglet *Imagerie* : couleurs naturelles, fausses couleurs, infrarouge court, NDVI, BSI (sol nu), MNDWI (eau), NDTI (turbidité), perte de végétation entre deux périodes. Sentinel-2 (10 m) depuis 2019, Landsat (30 m) avant. |
+| **Images drone** | Dépôt d'orthophotos GeoTIFF (WGS84, Web Mercator, UTM 29N / 30N) ou JPEG / PNG + fichier de calage, rattachées à un site et datées. Une version allégée (4 096 px au plus, WebP) est conservée en base pour l'affichage. Mode « selon la frise » : chaque site montre sa dernière image à la date choisie. |
+| **Rideau avant / après** | Comparaison de deux sources (fond, couches GEE, images drone à deux dates). |
+| **Prospection GEE** | Onglet *Prospection* : analyse d'une zone (emprise visible, zone dessinée, forêt classée, zone de travail) entre une période de référence et une période récente ; zones suspectes scorées (perte de NDVI 35 %, sol nu 25 %, turbidité 10 %, proximité de l'eau 20 %, surface 10 %). Signalement manuel de zones. |
+| **Missions d'éclairage** | Page *Missions* : regroupement de zones suspectes, équipe, moyens, export GPX / KML pour le GPS, compte rendu, résultat par zone (confirmée → devient un site, infirmée, écartée). |
+
+### Relier Google Earth Engine
+
+1. Le compte de service doit appartenir à un projet Google Cloud **enregistré pour Earth Engine** (usage non commercial), avec l'API Earth Engine activée.
+2. Sur Render, service `crloi-goh-api` → *Environment* → ajouter `GEE_SERVICE_ACCOUNT_JSON` = contenu complet du fichier de clé JSON (facultatif : `GEE_PROJECT`).
+3. Dans la carte, onglet *Imagerie*, bouton *Tester*.
+
+Sans cette variable, tout le reste fonctionne ; les fonctions GEE affichent un message explicite.
+
 ## Lancer en local
 
 ```bash

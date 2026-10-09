@@ -9,6 +9,9 @@ import { api } from "../api";
 import { gabarit } from "./gabarit";
 import * as K from "./couches";
 import { initOutils } from "./outils";
+import { initEdition } from "./edition";
+import { initImagerie } from "./imagerie";
+import { initProspection } from "./prospection";
 
 const ol = window.ol;
 const { esc, fmt, $, $$ } = GR;
@@ -501,7 +504,7 @@ export function initCarte(racine, ctx) {
 
   /* ---------------------- Liste des couches -------------------------- */
   function majListeCouches() {
-    const lignes = [definitionSites, definitionFiches, ...Object.values(refs).map((r) => ({ ...r.def, couche: r.couche }))];
+    const lignes = [definitionSites, definitionFiches, ...(C.couchesSupplementaires || []), ...Object.values(refs).map((r) => ({ ...r.def, couche: r.couche }))];
     $("#liste-couches", racine).innerHTML = lignes
       .map(
         (d) => `<div class="layer" data-id="${d.id}">
@@ -517,7 +520,8 @@ export function initCarte(racine, ctx) {
       )
       .join("");
   }
-  const coucheDe = (id) => (id === "sites" ? coucheSites : id === "fiches" ? coucheFiches : refs[id]?.couche);
+  const coucheDe = (id) =>
+    id === "sites" ? coucheSites : id === "fiches" ? coucheFiches : refs[id]?.couche || (C.couchesSupplementaires || []).find((d) => d.id === id)?.couche;
   function sauverRefs() {
     stock.set("references", Object.fromEntries(Object.entries(refs).map(([id, r]) => [id, { visible: r.couche.getVisible(), opacite: r.couche.getOpacity() }])));
     stock.set("fiches-visibles", coucheFiches.getVisible());
@@ -545,7 +549,8 @@ export function initCarte(racine, ctx) {
     if (!bloc) return;
     if (e.target.closest("[data-plus]")) bloc.classList.toggle("open");
     if (e.target.closest("[data-zoom]")) {
-      const ext = coucheDe(bloc.dataset.id).getSource().getExtent();
+      const sup = (C.couchesSupplementaires || []).find((d) => d.id === bloc.dataset.id);
+      const ext = sup?.etendue ? sup.etendue() : coucheDe(bloc.dataset.id).getSource().getExtent();
       if (ext && Number.isFinite(ext[0])) view.fit(ext, { padding: [60, 60, 60, 60], duration: 600, maxZoom: 16 });
       else GR.toast("Cette couche ne contient encore aucun objet", "info");
     }
@@ -728,23 +733,35 @@ export function initCarte(racine, ctx) {
       K.sourceCoursEau.clear();
       cours.forEach((c) => {
         if (!c.trace) return;
-        const f = new ol.Feature({ geometry: formatGeo.readGeometry(c.trace), ...c });
+        const f = new ol.Feature({ geometry: formatGeo.readGeometry(c.trace), ...c, cours: true });
+        f.setId(`ce-${c.id}`);
         K.sourceCoursEau.addFeature(f);
       });
       E.coursEau = cours;
       K.sourceZones.clear();
       zones.forEach((z) => {
         if (!z.geometrie) return;
-        K.sourceZones.addFeature(new ol.Feature({ geometry: formatGeo.readGeometry(z.geometrie), nom: z.nom, approximative: z.approximative }));
+        const f = new ol.Feature({ geometry: formatGeo.readGeometry(z.geometrie), ...z, zone: true });
+        f.setId(`zone-${z.id}`);
+        K.sourceZones.addFeature(f);
       });
       // Frise
       const dates = sites.flatMap((s) => (s.events || []).map((e) => e.date));
       E.borneMin = dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : ajouterJours(aujourdhui(), -30);
       E.datesEvenements = [...new Set(dates)].sort();
-      construireFiltres();
-      C.initRequeteur?.();
+      if (!E.chargeUneFois) {
+        construireFiltres();
+        C.initRequeteur?.();
+      } else {
+        ms.forets?.setOptions(optionsDistinctes("foret"));
+        ms.sp?.setOptions(optionsDistinctes("sous_prefecture"));
+        ms.cours?.setOptions(optionsDistinctes("cours_eau"));
+      }
       majFrise();
       appliquerFiltres();
+      C.apresChargement?.();
+      if (E.chargeUneFois) return;
+      E.chargeUneFois = true;
       if (ctx.siteCible && tousLesSites.get(ctx.siteCible)) {
         const f = tousLesSites.get(ctx.siteCible);
         if (sourceSites.getFeatureById(ctx.siteCible)) {
@@ -759,6 +776,14 @@ export function initCarte(racine, ctx) {
     }
   }
   C.recharger = charger;
+  C.formatGeo = formatGeo;
+  C.tousLesSites = tousLesSites;
+  C.sourceFiches = sourceFiches;
+  C.coucheFiches = coucheFiches;
+  C.refs = refs;
+  C.majLegende = () => majLegende();
+  C.majListeCouches = () => majListeCouches();
+  C.centreDe = (f) => centreDe(f);
 
   const centreDe = (f) => {
     const g = f.getGeometry();
@@ -879,7 +904,8 @@ export function initCarte(racine, ctx) {
     majTexteFrise();
     appliquerFiltres();
     ctx.setDate?.(d);
-    if (popupListe.length) popupEl.innerHTML = contenuPopup(popupListe[popupIndex]);
+    C.apresChangementDate?.(d);
+    if (popupListe.length && (popupListe[popupIndex].site || popupListe[popupIndex].get("fiche"))) popupEl.innerHTML = contenuPopup(popupListe[popupIndex]);
   }
   C.changerDate = changerDate;
   ecoute(curseur, "input", () => changerDate(ajouterJours(E.borneMin, Number(curseur.value)), { depuisCurseur: true }));
@@ -961,7 +987,8 @@ export function initCarte(racine, ctx) {
         <button class="btn btn-sm" data-pa="zoom"><span class="mi">zoom_in</span>Zoomer</button>
         <button class="btn btn-sm" data-pa="selection"><span class="mi">${E.selection.has(f.getId()) ? "deselect" : "check_box_outline_blank"}</span>${E.selection.has(f.getId()) ? "Retirer" : "Sélectionner"}</button>
         ${p.lat != null ? `<a class="btn btn-sm btn-ghost" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${Number(p.lat).toFixed(6)},${Number(p.lng).toFixed(6)}" title="Itinéraire"><span class="mi">directions</span></a>` : ""}
-      </div>`;
+      </div>
+      ${C.barreEditionSite ? C.barreEditionSite(f) : ""}`;
   }
 
   function contenuPopupFiche(f) {
@@ -987,7 +1014,8 @@ export function initCarte(racine, ctx) {
         </dl>
         <p class="mt-3" style="font-size:12.5px">${esc(p.description)}</p>
       </div>
-      <div class="popup-actions"><button class="btn btn-sm btn-primary" data-pa="voir-fiche"><span class="mi">open_in_new</span>Ouvrir les fiches</button></div>`;
+      <div class="popup-actions"><button class="btn btn-sm btn-primary" data-pa="voir-fiche"><span class="mi">open_in_new</span>Ouvrir / modifier</button>
+        <button class="btn btn-sm" data-pe="fiche-deplacer"><span class="mi">open_with</span>Déplacer le point</button></div>`;
   }
 
   function afficherPopup(feats, coord) {
@@ -998,6 +1026,15 @@ export function initCarte(racine, ctx) {
     popup.setPosition(coord);
   }
   C.afficherPopup = afficherPopup;
+  C.popup = popup;
+  C.popupEl = popupEl;
+  C.ouvrirPopupHtml = (html, coord, feats = []) => {
+    popupListe = feats;
+    popupIndex = 0;
+    popupEl.style.display = "block";
+    popupEl.innerHTML = html;
+    popup.setPosition(coord);
+  };
   function fermerPopup() {
     popup.setPosition(undefined);
     popupEl.style.display = "none";
@@ -1016,6 +1053,11 @@ export function initCarte(racine, ctx) {
     if (h) {
       arreterLecture();
       changerDate(h.dataset.date);
+      return undefined;
+    }
+    const pe = e.target.closest("[data-pe]");
+    if (pe) {
+      C.actionEdition?.(pe.dataset.pe, popupListe[popupIndex], pe);
       return undefined;
     }
     const a = e.target.closest("[data-pa]");
@@ -1076,7 +1118,7 @@ export function initCarte(racine, ctx) {
   });
 
   map.on("singleclick", (evt) => {
-    if (C.outilActif?.() && C.outilActif() !== "info") return;
+    if (C.editionActive || (C.outilActif?.() && C.outilActif() !== "info")) return;
     const feats = [];
     let groupe = null;
     map.forEachFeatureAtPixel(
@@ -1100,6 +1142,7 @@ export function initCarte(racine, ctx) {
       else afficherPopup(feats, evt.coordinate);
       return undefined;
     }
+    if (C.clicSupplementaire?.(evt)) return undefined;
     let foret = null;
     let riviere = null;
     if (refs["cours-eau"]?.couche.getVisible()) map.forEachFeatureAtPixel(evt.pixel, (f) => (riviere = f), { layerFilter: (l) => l === refs["cours-eau"].couche, hitTolerance: 4 });
@@ -1160,7 +1203,12 @@ export function initCarte(racine, ctx) {
         <dt>Longueur dans le Gôh</dt><dd>${p.longueur_km ? `${fmt.n(p.longueur_km, 2)} km` : "—"}</dd>
         ${p.localites ? `<dt>Localités</dt><dd>${esc(p.localites)}</dd>` : ""}
         ${p.commentaire ? `<dt>Commentaire</dt><dd>${esc(p.commentaire)}</dd>` : ""}
-      </dl></div>`;
+      </dl></div>
+      <div class="popup-actions"><button class="btn btn-sm" data-pe="cours-modifier"><span class="mi">edit</span>Modifier</button>
+        <button class="btn btn-sm" data-pe="cours-retracer"><span class="mi">timeline</span>Retracer</button>
+        <button class="btn btn-sm btn-soft-danger" data-pe="cours-effacer"><span class="mi">delete</span>Effacer le tracé</button></div>`;
+    popupListe = [f];
+    popupIndex = 0;
     popup.setPosition(coord);
   }
 
@@ -1459,6 +1507,9 @@ export function initCarte(racine, ctx) {
 
   /* ------------------------------ Outils ----------------------------- */
   const arreterOutils = initOutils(C, { racine, ecoute, signal });
+  const arreterEdition = initEdition(C, { racine, ecoute, signal, ctx });
+  const arreterImagerie = initImagerie(C, { racine, ecoute, signal });
+  const arreterProspection = initProspection(C, { racine, ecoute, signal, ctx });
 
   /* ------------------------------ Init ------------------------------- */
   appliquerRegroupement();
@@ -1472,6 +1523,9 @@ export function initCarte(racine, ctx) {
     arreterLecture();
     minuteries.forEach(clearTimeout);
     arreterOutils?.();
+    arreterEdition?.();
+    arreterImagerie?.();
+    arreterProspection?.();
     Object.keys(GR.charts).forEach((id) => {
       if (id === "mini-graphe") {
         GR.charts[id].destroy();

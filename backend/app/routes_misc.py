@@ -180,6 +180,36 @@ async def fiche_statut(fiche_id: str, data: FicheStatutIn, user=Depends(current_
     return s_fiche(f)
 
 
+@router.put("/fiches/{fiche_id}")
+async def update_fiche(fiche_id: str, data: FicheIn, user=Depends(current_user), db: AsyncSession = Depends(get_session)):
+    f = (await db.execute(select(M.FicheRens).where(M.FicheRens.id == fiche_id))).scalar_one_or_none()
+    if not f:
+        raise HTTPException(404, "Fiche introuvable")
+    for k, v in data.model_dump(exclude={"coord", "site_id"}).items():
+        setattr(f, k, v)
+    if data.coord:
+        try:
+            f.lat, f.lng = geo.to_wgs84(data.coord.sys, data.coord.x, data.coord.y)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        f.coord_saisie = {"sys": data.coord.sys, "x": geo.parse_num(data.coord.x), "y": geo.parse_num(data.coord.y)}
+    else:
+        f.lat = f.lng = f.coord_saisie = None
+    f.historique = (f.historique or []) + [{"at": datetime.now(timezone.utc).isoformat(), "by": user["full_name"], "statut": f.statut, "note": "Fiche modifiée"}]
+    await db.commit()
+    return s_fiche(f)
+
+
+@router.delete("/fiches/{fiche_id}")
+async def delete_fiche(fiche_id: str, _u=Depends(require()), db: AsyncSession = Depends(get_session)):
+    f = (await db.execute(select(M.FicheRens).where(M.FicheRens.id == fiche_id))).scalar_one_or_none()
+    if not f:
+        raise HTTPException(404, "Fiche introuvable")
+    await db.delete(f)
+    await db.commit()
+    return {"ok": True}
+
+
 # ---------- Cours d'eau et zones ----------
 @router.get("/cours-eau")
 async def cours_eau(_u=Depends(current_user), db: AsyncSession = Depends(get_session)):
@@ -211,10 +241,108 @@ async def set_trace(ce_id: str, geojson: dict, _u=Depends(current_user), db: Asy
     return {"ok": True}
 
 
+class CoursEauIn(BaseModel):
+    nom: str = Field(min_length=1)
+    bassin: str = ""
+    type: str = ""
+    localites: str = ""
+    longueur_km: Optional[float] = Field(None, ge=0)
+    lineaire_impacte_km: Optional[float] = Field(None, ge=0)
+    intensite: Literal["tres_impacte", "impacte", "faible", "non_impacte"] = "non_impacte"
+    commentaire: str = ""
+
+
+def s_cours(c: M.CoursEau) -> dict:
+    return {"id": c.id, "nom": c.nom, "bassin": c.bassin, "type": c.type, "localites": c.localites, "longueur_km": c.longueur_km,
+            "lineaire_impacte_km": c.lineaire_impacte_km, "intensite": c.intensite, "commentaire": c.commentaire, "trace": c.trace}
+
+
+@router.post("/cours-eau")
+async def create_cours(data: CoursEauIn, _u=Depends(current_user), db: AsyncSession = Depends(get_session)):
+    c = M.CoursEau(**data.model_dump())
+    db.add(c)
+    await db.commit()
+    return s_cours(c)
+
+
+@router.patch("/cours-eau/{ce_id}")
+async def patch_cours(ce_id: str, data: CoursEauIn, _u=Depends(current_user), db: AsyncSession = Depends(get_session)):
+    c = (await db.execute(select(M.CoursEau).where(M.CoursEau.id == ce_id))).scalar_one_or_none()
+    if not c:
+        raise HTTPException(404, "Cours d'eau introuvable")
+    for k, v in data.model_dump().items():
+        setattr(c, k, v)
+    await db.commit()
+    return s_cours(c)
+
+
+@router.delete("/cours-eau/{ce_id}")
+async def delete_cours(ce_id: str, _u=Depends(current_user), db: AsyncSession = Depends(get_session)):
+    c = (await db.execute(select(M.CoursEau).where(M.CoursEau.id == ce_id))).scalar_one_or_none()
+    if not c:
+        raise HTTPException(404, "Cours d'eau introuvable")
+    await db.delete(c)
+    await db.commit()
+    return {"ok": True}
+
+
+@router.delete("/cours-eau/{ce_id}/trace")
+async def delete_trace(ce_id: str, _u=Depends(current_user), db: AsyncSession = Depends(get_session)):
+    c = (await db.execute(select(M.CoursEau).where(M.CoursEau.id == ce_id))).scalar_one_or_none()
+    if not c:
+        raise HTTPException(404, "Cours d'eau introuvable")
+    c.trace = None
+    await db.commit()
+    return {"ok": True}
+
+
+class ZoneIn(BaseModel):
+    nom: str = Field(min_length=1)
+    categorie: str = "zone_ops"
+    geometrie: Optional[dict] = None
+    approximative: bool = False
+
+
+def s_zone(z: M.Zone) -> dict:
+    return {"id": z.id, "nom": z.nom, "categorie": z.categorie, "geometrie": z.geometrie, "approximative": z.approximative}
+
+
+@router.post("/zones")
+async def create_zone(data: ZoneIn, _u=Depends(current_user), db: AsyncSession = Depends(get_session)):
+    if not data.geometrie:
+        raise HTTPException(400, "Géométrie manquante")
+    z = M.Zone(**data.model_dump())
+    db.add(z)
+    await db.commit()
+    return s_zone(z)
+
+
+@router.patch("/zones/{zid}")
+async def patch_zone(zid: str, data: ZoneIn, _u=Depends(current_user), db: AsyncSession = Depends(get_session)):
+    z = (await db.execute(select(M.Zone).where(M.Zone.id == zid))).scalar_one_or_none()
+    if not z:
+        raise HTTPException(404, "Zone introuvable")
+    z.nom, z.categorie, z.approximative = data.nom, data.categorie, data.approximative
+    if data.geometrie:
+        z.geometrie = data.geometrie
+    await db.commit()
+    return s_zone(z)
+
+
+@router.delete("/zones/{zid}")
+async def delete_zone(zid: str, _u=Depends(current_user), db: AsyncSession = Depends(get_session)):
+    z = (await db.execute(select(M.Zone).where(M.Zone.id == zid))).scalar_one_or_none()
+    if not z:
+        raise HTTPException(404, "Zone introuvable")
+    await db.delete(z)
+    await db.commit()
+    return {"ok": True}
+
+
 @router.get("/zones")
 async def zones(_u=Depends(current_user), db: AsyncSession = Depends(get_session)):
     rows = (await db.execute(select(M.Zone))).scalars().all()
-    return [{"id": z.id, "nom": z.nom, "categorie": z.categorie, "geometrie": z.geometrie, "approximative": z.approximative} for z in rows]
+    return [s_zone(z) for z in rows]
 
 
 # ---------- Indicateurs ----------

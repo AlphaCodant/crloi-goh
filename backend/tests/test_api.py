@@ -76,3 +76,90 @@ def test_parcours(client):
         "fiabilite": "B", "credibilite": "2", "departement": "Gagnoa", "localite": "Test",
         "nature": ["Nouveau site"], "description": "Test"})
     assert r.status_code == 200 and r.json()["numero"] == "RENS-2026-001"
+
+
+def _carre(lng, lat, d=0.002):
+    return {"type": "Polygon", "coordinates": [[[lng, lat], [lng + d, lat], [lng + d, lat + d], [lng, lat + d], [lng, lat]]]}
+
+
+def test_prospection_missions_images(client, monkeypatch):
+    from app import gee
+
+    h = auth(client)
+    # GEE non configuré : message clair
+    monkeypatch.setattr(gee, "configure", lambda: False)
+    r = client.post("/api/gee/couche", headers=h, json={"produit": "ndvi", "du": "2026-01-01", "au": "2026-03-01"})
+    assert r.status_code == 503
+
+    # Analyse simulée (le serveur GEE est remplacé par une réponse fixe)
+    monkeypatch.setattr(gee, "configure", lambda: True)
+    monkeypatch.setattr(gee, "detecter", lambda zone, ref, rec, params: {
+        "zones": [
+            {"geometrie": _carre(-5.95, 6.13), "indices": {"dndvi": 0.4, "bsi": 0.2, "mndwi": 0.1, "ndti": 0.1, "dist_eau_m": 150}},
+            {"geometrie": _carre(-5.90, 6.20, 0.0003), "indices": {"dndvi": 0.3, "bsi": 0.1, "mndwi": 0, "ndti": 0, "dist_eau_m": 900}},
+        ],
+        "images": {"reference": 12, "recente": 9}})
+    r = client.post("/api/analyses", headers=h, json={
+        "zone": _carre(-6.0, 6.0, 0.5), "zone_nom": "Test", "ref_du": "2025-01-01", "ref_au": "2025-03-31",
+        "rec_du": "2026-01-01", "rec_au": "2026-03-31"})
+    assert r.status_code == 200, r.text
+    cibles = r.json()["cibles"]
+    assert len(cibles) == 1  # la seconde zone (< 0,5 ha) est écartée
+    c = cibles[0]
+    assert c["code"].startswith("ZS-") and 0 < c["score"] <= 1 and c["superficie_ha"] > 4
+
+    # Zone dessinée à la main
+    r = client.post("/api/cibles", headers=h, json={"geometrie": _carre(-5.80, 6.30), "origine": "drone"})
+    assert r.status_code == 200 and r.json()["origine"] == "drone"
+    manuelle = r.json()["id"]
+
+    # Mission d'éclairage
+    r = client.post("/api/missions", headers=h, json={"titre": "Éclairage Sérihio", "date_prevue": "2026-10-20", "cibles": [c["id"], manuelle]})
+    assert r.status_code == 200, r.text
+    m = r.json()
+    assert m["code"].startswith("ECL-2026-") and {x["statut"] for x in m["cibles"]} == {"programmee"}
+    gpx = client.get(f"/api/missions/{m['id']}/gpx", headers=h)
+    assert gpx.status_code == 200 and "<wpt" in gpx.text and c["code"] in gpx.text
+    assert "<Polygon>" in client.get(f"/api/missions/{m['id']}/kml", headers=h).text
+
+    # Résultat terrain : la zone est confirmée et devient un site
+    r = client.post(f"/api/cibles/{c['id']}/site", headers=h, json={"localite": "Zone test", "departement": "Gagnoa", "statut": "actif"})
+    assert r.status_code == 200, r.text
+    site = client.get(f"/api/sites/{r.json()['site_id']}", headers=h).json()
+    assert site["contour"] and site["statut"] == "actif"
+    r = client.patch(f"/api/cibles/{manuelle}", headers=h, json={"statut": "infirmee", "commentaire": "Champ de manioc"})
+    assert r.json()["statut"] == "infirmee" and r.json()["historique"][-1]["note"] == "Champ de manioc"
+
+    # Retirer une zone de la mission puis supprimer la mission
+    r = client.put(f"/api/missions/{m['id']}", headers=h, json={"titre": "Éclairage Sérihio", "statut": "terminee", "cibles": [c["id"]]})
+    assert len(r.json()["cibles"]) == 1
+    assert client.delete(f"/api/missions/{m['id']}", headers=h).status_code == 200
+
+    # Image drone : dépôt, lecture, suppression
+    png = bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082")
+    r = client.post("/api/images", headers=h, files={"fichier": ("o.png", png, "image/png")}, data={
+        "date_prise": "2026-10-05", "crs": "EPSG:32630", "emprise": "238000,705000,238500,705400",
+        "emprise_wgs84": "-5.37,6.37,-5.36,6.38", "site_id": site["id"], "titre": "Survol"})
+    assert r.status_code == 200, r.text
+    img = r.json()
+    assert client.get(f"/api/images/{img['id']}/fichier", headers=h).content == png
+    assert [i["id"] for i in client.get("/api/images", headers=h, params={"site_id": site["id"]}).json()] == [img["id"]]
+    assert client.delete(f"/api/images/{img['id']}", headers=h).status_code == 200
+
+
+def test_cours_eau_zones_fiches_crud(client):
+    h = auth(client)
+    r = client.post("/api/cours-eau", headers=h, json={"nom": "Rivière test", "intensite": "impacte", "longueur_km": 12})
+    ce = r.json()
+    assert client.put(f"/api/cours-eau/{ce['id']}/trace", headers=h, json={"type": "LineString", "coordinates": [[-5.9, 6.1], [-5.8, 6.2]]}).status_code == 200
+    assert client.patch(f"/api/cours-eau/{ce['id']}", headers=h, json={"nom": "Rivière test", "intensite": "faible"}).json()["intensite"] == "faible"
+    assert client.delete(f"/api/cours-eau/{ce['id']}", headers=h).status_code == 200
+    z = client.post("/api/zones", headers=h, json={"nom": "Secteur A", "geometrie": _carre(-5.9, 6.1, 0.1)}).json()
+    assert client.delete(f"/api/zones/{z['id']}", headers=h).status_code == 200
+    f = client.post("/api/fiches", headers=h, json={"date_recu": "2026-10-07", "source_type": "Informateur", "departement": "Oumé",
+                                                    "localite": "X", "nature": ["Nouveau site"], "description": "A"}).json()
+    r = client.put(f"/api/fiches/{f['id']}", headers=h, json={"date_recu": "2026-10-07", "source_type": "Informateur", "departement": "Oumé",
+                                                              "localite": "Y", "nature": ["Nouveau site"], "description": "B",
+                                                              "coord": {"sys": "wgs", "x": "-5.4", "y": "6.4"}})
+    assert r.json()["localite"] == "Y" and r.json()["lat"] == 6.4
+    assert client.delete(f"/api/fiches/{f['id']}", headers=h).status_code == 200

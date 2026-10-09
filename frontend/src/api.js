@@ -8,6 +8,8 @@ export function setToken(t) {
   try { t ? localStorage.setItem("crloi_token", t) : localStorage.removeItem("crloi_token"); } catch (e) { /* ignore */ }
 }
 export const hasToken = () => !!token;
+export const getToken = () => token;
+export const urlApi = (path) => BASE + path;
 
 export class ApiError extends Error {
   constructor(status, message) { super(message); this.status = status; }
