@@ -30,12 +30,18 @@ def _database_url() -> str:
     return url
 
 
-_connect_args = {}
+# Schéma PostgreSQL dédié : les tables du CRLOI restent séparées de celles d'autres applications
+# hébergées dans la même base (ex. GestReb).
+DB_SCHEMA = os.environ.get("DB_SCHEMA", "crloi").strip() or "public"
+if not DB_SCHEMA.replace("_", "").isalnum():
+    raise RuntimeError("DB_SCHEMA ne doit contenir que des lettres, chiffres et _")
+
+_connect_args = {"server_settings": {"search_path": DB_SCHEMA}}
 if os.environ.get("DB_SSL", "true").lower() not in ("0", "false", "no", "off"):
     _ctx = ssl.create_default_context()
     _ctx.check_hostname = False
     _ctx.verify_mode = ssl.CERT_NONE
-    _connect_args = {"ssl": _ctx}
+    _connect_args["ssl"] = _ctx
 
 engine = create_async_engine(_database_url(), pool_pre_ping=True, pool_size=5, max_overflow=5, connect_args=_connect_args)
 SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

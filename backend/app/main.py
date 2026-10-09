@@ -9,7 +9,8 @@ import os  # noqa: E402
 from fastapi import APIRouter, FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from .db import Base, engine  # noqa: E402
+from sqlalchemy import text  # noqa: E402
+from .db import DB_SCHEMA, Base, engine  # noqa: E402
 from . import routes_brq, routes_misc, routes_sites  # noqa: E402
 from .seed import seed  # noqa: E402
 
@@ -36,6 +37,8 @@ app.add_middleware(CORSMiddleware, allow_origins=_origins or ["*"], allow_creden
 
 @app.on_event("startup")
 async def startup():
+    async with engine.begin() as conn:
+        await conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{DB_SCHEMA}"'))
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await seed()

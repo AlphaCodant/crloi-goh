@@ -17,6 +17,8 @@ services:
         sync: false
       - key: DB_SSL
         value: "false"          # "true" si vous utilisez l'URL externe de la base
+      - key: DB_SCHEMA
+        value: crloi             # tables séparées de celles des autres applications de la base
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGINS

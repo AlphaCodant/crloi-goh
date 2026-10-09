@@ -40,6 +40,7 @@ Tests : `cd backend && pytest` (les tests d'API ne tournent que si `TEST_DATABAS
 |---|---|---|
 | `DATABASE_URL` | `postgresql://user:mdp@hote/base` | Base PostgreSQL |
 | `DB_SSL` | `true` / `false` | SSL vers la base (`true` pour l'URL externe Render) |
+| `DB_SCHEMA` | `crloi` | Schéma PostgreSQL dédié (permet de partager une base avec une autre application sans mélanger les tables) |
 | `JWT_SECRET` | 32 caractères aléatoires ou plus | Signature des sessions |
 | `CORS_ORIGINS` | `https://crloi-goh.onrender.com` | Adresse de l'interface |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`, `ADMIN_GRADE` | | Compte du chef de cellule créé au premier démarrage |
