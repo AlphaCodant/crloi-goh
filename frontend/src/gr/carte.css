@@ -1,7 +1,8 @@
 /* =====================================================================
    GESTREB — Géoportail (carte interactive)
    ===================================================================== */
-html,
+/* Seule la page carte bloque le défilement du document (avant : toutes les pages) */
+html:has(body.geo),
 body.geo {
   height: 100%;
   overflow: hidden;

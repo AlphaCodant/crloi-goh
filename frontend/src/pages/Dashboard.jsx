@@ -94,7 +94,7 @@ export default function Dashboard() {
   }, [sel, periode, date]);
 
   /* ----------------------------- Graphiques ---------------------------- */
-  const marque = semaineSel ? [{ x: T.semaineCourte(semaineSel), borderColor: "#0f4c3a", strokeDashArray: 4, label: { text: "Date affichée", style: { background: "#0f4c3a", color: "#fff", fontSize: "10px" } } }] : [];
+  const marque = semaineSel ? [{ x: T.semaineCourte(semaineSel), borderColor: "#165d66", strokeDashArray: 4, label: { text: "Date affichée", style: { background: "#165d66", color: "#fff", fontSize: "10px" } } }] : [];
   const clicSemaine = {
     dataPointSelection: (e, ctx, cfg) => {
       const w = series[cfg.dataPointIndex];

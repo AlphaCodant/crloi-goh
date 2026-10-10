@@ -19,7 +19,7 @@ export function initOutils(C, { racine, ecoute, signal }) {
   const styleDessin = (f) => {
     const type = f.getGeometry().getType();
     const mesure = f.get("mesure");
-    const couleur = mesure ? "#0f4c3a" : "#7c3aed";
+    const couleur = mesure ? "#165d66" : "#7c3aed";
     const styles = [
       new ol.style.Style({
         fill: new ol.style.Fill({ color: mesure ? "rgba(22,163,74,0.15)" : "rgba(124,58,237,0.15)" }),
@@ -33,7 +33,7 @@ export function initOutils(C, { racine, ecoute, signal }) {
           text: new ol.style.Text({
             text: f.get("libelle"),
             offsetY: -16,
-            font: "600 12px 'Inter Variable', Inter, sans-serif",
+            font: "600 12px 'Century Gothic', 'Jost Variable', sans-serif",
             fill: new ol.style.Fill({ color: "#4c1d95" }),
             stroke: new ol.style.Stroke({ color: "#fff", width: 3 }),
           }),
@@ -61,7 +61,7 @@ export function initOutils(C, { racine, ecoute, signal }) {
             ? new ol.style.Text({
                 text: f.get("libelle"),
                 offsetY: -48,
-                font: "700 12px 'Inter Variable', Inter, sans-serif",
+                font: "700 12px 'Century Gothic', 'Jost Variable', sans-serif",
                 fill: new ol.style.Fill({ color: "#111827" }),
                 stroke: new ol.style.Stroke({ color: "#fff", width: 3 }),
               })
@@ -141,8 +141,8 @@ export function initOutils(C, { racine, ecoute, signal }) {
       type,
       style: new ol.style.Style({
         fill: new ol.style.Fill({ color: "rgba(255,255,255,0.25)" }),
-        stroke: new ol.style.Stroke({ color: "#0f4c3a", width: 2, lineDash: [8, 6] }),
-        image: new ol.style.Circle({ radius: 5, stroke: new ol.style.Stroke({ color: "#0f4c3a" }), fill: new ol.style.Fill({ color: "#fff" }) }),
+        stroke: new ol.style.Stroke({ color: "#165d66", width: 2, lineDash: [8, 6] }),
+        image: new ol.style.Circle({ radius: 5, stroke: new ol.style.Stroke({ color: "#165d66" }), fill: new ol.style.Fill({ color: "#fff" }) }),
       }),
     });
     let el;
@@ -352,8 +352,8 @@ export function initOutils(C, { racine, ecoute, signal }) {
     }
     const legende = $("#legende-corps", racine).innerHTML;
     w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${esc(titre || "Carte CRLOI Gôh")}</title>
-      <style>@page{size:A4 landscape;margin:10mm}body{background:#fff;margin:0;font-family:Inter,system-ui,sans-serif;color:#0f172a}
-      .entete{display:flex;align-items:center;gap:10px;border-bottom:2px solid #0f4c3a;padding-bottom:4mm;margin-bottom:4mm}
+      <style>@page{size:A4 landscape;margin:10mm}body{background:#fff;margin:0;font-family:'Century Gothic','Jost Variable',system-ui,sans-serif;color:#0f172a}
+      .entete{display:flex;align-items:center;gap:10px;border-bottom:2px solid #165d66;padding-bottom:4mm;margin-bottom:4mm}
       .entete img{width:12mm;height:12mm}.entete h1{font-size:16pt;margin:0}
       .feuille{display:grid;grid-template-columns:1fr 62mm;gap:6mm;height:178mm}
       .carte{border:1px solid #94a3b8;width:100%;height:100%;object-fit:contain}

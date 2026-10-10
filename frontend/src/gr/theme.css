@@ -1,0 +1,621 @@
+/* =====================================================================
+   CRLOI Gôh — thème cyan clair, sobre
+   Chargé en dernier : redéfinit les jetons et neutralise les effets
+   (dégradés, ombres portées, pastilles colorées, animations).
+   ===================================================================== */
+
+/* ---------- Polices ---------- */
+/* Century Gothic (installée avec Windows / Office) en priorité, version Light si présente.
+   À défaut, Jost (libre, même famille géométrique) en graisse 300. */
+@font-face {
+  font-family: "CRLOI Gothic";
+  font-weight: 100 450;
+  src: local("Century Gothic Light"), local("CenturyGothic-Light"), local("Century Gothic Pro Light"),
+    local("CenturyGothicPro-Light"), local("Century Gothic"), local("CenturyGothic"), local("Century Gothic Pro"),
+    local("CenturyGothicPro");
+}
+@font-face {
+  font-family: "CRLOI Gothic";
+  font-weight: 451 900;
+  src: local("Century Gothic Bold"), local("CenturyGothic-Bold"), local("Century Gothic Pro Bold"),
+    local("CenturyGothicPro-Bold");
+}
+/* Icônes : Material Symbols Outlined, trait fin (graisse 300), réduites aux icônes utilisées */
+@font-face {
+  font-family: "CRLOI Icones";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("./icones.woff2") format("woff2");
+}
+
+:root {
+  /* Échelle cyan (remplace l'échelle verte héritée de GestReb) */
+  --forest-950: #0c3a40;
+  --forest-900: #114a52;
+  --forest-800: #165d66;
+  --forest-700: #1d7480;
+  --forest-600: #2a8a96;
+  --forest-500: #5aaab4;
+  --forest-100: #d3ecef;
+  --forest-50: #eef8f9;
+
+  --cyan-fond: #f4fafb;
+  --cyan-panneau: #e9f5f7;
+  --cyan-survol: #ddeff2;
+  --cyan-actif: #cce7eb;
+  --cyan-texte-actif: #0f4f57;
+
+  --primary: #1d7480;
+  --primary-hover: #165d66;
+  --primary-soft: #eef8f9;
+  --accent: #b7791f;
+  --info: #1d7480;
+  --info-soft: #e3f3f5;
+
+  --gray-25: #fbfdfd;
+  --gray-50: #f5f9fa;
+  --gray-100: #edf3f4;
+  --gray-200: #dce7e9;
+  --gray-300: #c3d3d6;
+  --gray-400: #93a6aa;
+  --gray-500: #66797e;
+  --gray-600: #4d5f63;
+  --gray-700: #36464a;
+  --gray-800: #243235;
+  --gray-900: #152124;
+
+  --bg: var(--cyan-fond);
+  --surface: #ffffff;
+  --border: #dce7e9;
+  --text: #36464a;
+  --text-strong: #152124;
+  --text-muted: #66797e;
+
+  --sidebar-bg: var(--cyan-panneau);
+
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+
+  --shadow-xs: none;
+  --shadow-sm: 0 1px 2px rgb(21 33 36 / 0.06);
+  --shadow: 0 1px 3px rgb(21 33 36 / 0.1);
+  --shadow-lg: 0 4px 14px rgb(21 33 36 / 0.12);
+  --ring: 0 0 0 2px rgb(29 116 128 / 0.25);
+
+  --font: "CRLOI Gothic", "Jost Variable", "Jost", "Segoe UI", system-ui, sans-serif;
+  --transition: 120ms ease;
+
+  --c1: #1d7480;
+}
+
+body {
+  font-weight: 300;
+  letter-spacing: 0.005em;
+}
+h1,
+h2,
+h3,
+h4,
+strong,
+b,
+th {
+  font-weight: 600;
+}
+h1,
+h2 {
+  font-weight: 500;
+}
+.mi,
+.material-icons-outlined {
+  font-family: "CRLOI Icones";
+  font-weight: 400;
+  font-size: 19px;
+}
+.mi-sm {
+  font-size: 16px;
+}
+
+/* ---------- Défilement ---------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-300) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--gray-400);
+}
+html {
+  scroll-behavior: auto;
+  overflow-x: hidden;
+}
+
+/* ---------- Barre latérale ---------- */
+.app-sidebar {
+  background: var(--cyan-panneau);
+  color: var(--text);
+  border-right: 1px solid var(--border);
+}
+.app-brand {
+  color: var(--text-strong);
+  border-bottom: 1px solid var(--border);
+}
+.app-brand img,
+.geo-brand img {
+  background: transparent;
+  border-radius: 0;
+}
+.app-brand strong {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.app-brand small {
+  color: var(--text-muted);
+  opacity: 1;
+}
+.nav-title {
+  color: var(--gray-500);
+  opacity: 1;
+  font-weight: 500;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+}
+.nav-link {
+  color: var(--text);
+  font-weight: 400;
+  border-radius: var(--radius);
+}
+.nav-link:hover {
+  background: var(--cyan-survol);
+  color: var(--text-strong);
+}
+.nav-link.active {
+  background: var(--cyan-actif);
+  color: var(--cyan-texte-actif);
+  box-shadow: none;
+  font-weight: 500;
+}
+.nav-link .mi {
+  font-size: 18px;
+  opacity: 0.85;
+}
+.nav-sub {
+  border-left-color: var(--border);
+}
+.app-sidebar-footer {
+  color: var(--text-muted);
+  opacity: 1;
+  border-top: 1px solid var(--border);
+}
+
+/* ---------- En-tête des pages ---------- */
+.app-header {
+  background: var(--surface);
+  backdrop-filter: none;
+}
+.app-header .page-heading h1 {
+  font-weight: 500;
+}
+.user-chip {
+  border-radius: var(--radius);
+}
+.avatar {
+  background: var(--cyan-actif);
+  color: var(--cyan-texte-actif);
+  font-weight: 600;
+}
+.dropdown.open,
+.ms.open .ms-panel {
+  animation: none;
+}
+
+/* ---------- Cartes, indicateurs ---------- */
+.card,
+.kpi {
+  box-shadow: none;
+}
+.kpi-icon,
+.kpi-icon.blue,
+.kpi-icon.amber,
+.kpi-icon.red,
+.kpi-icon.violet,
+.kpi-icon.gray {
+  width: auto;
+  height: auto;
+  background: none;
+  color: var(--gray-400);
+  border-radius: 0;
+  padding-top: 2px;
+}
+.kpi-icon .mi {
+  font-size: 20px;
+}
+.kpi-value {
+  font-weight: 500;
+}
+.kpi.link:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--forest-500);
+}
+.card-footer,
+.table th {
+  background: var(--gray-50);
+}
+.table th {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* ---------- Boutons, champs, puces ---------- */
+.btn {
+  font-weight: 500;
+  border-radius: var(--radius);
+}
+.btn-sm {
+  border-radius: var(--radius);
+}
+.btn-group .btn:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+.btn-group .btn:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.btn-soft:hover {
+  background: var(--cyan-survol);
+}
+.btn-group .btn.active {
+  --b-bg: var(--cyan-actif);
+  --b-fg: var(--cyan-texte-actif);
+  border-color: var(--gray-300);
+}
+.input,
+.select,
+.ms-btn {
+  border-radius: var(--radius);
+  font-weight: 300;
+}
+.field > label,
+.label {
+  font-weight: 500;
+}
+.chip {
+  border-radius: var(--radius);
+  font-weight: 400;
+}
+.chip:hover {
+  border-color: var(--gray-400);
+}
+.chip.on,
+.chip:has(input:checked) {
+  background: var(--cyan-actif);
+  border-color: var(--gray-300);
+  color: var(--cyan-texte-actif);
+}
+.badge {
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+.status-dot.online {
+  box-shadow: none;
+  animation: none;
+}
+.progress > span,
+.progress.amber > span,
+.progress.red > span,
+.progress.blue > span {
+  background: var(--primary);
+}
+.progress.amber > span {
+  background: var(--warning);
+}
+.progress.red > span {
+  background: var(--danger);
+}
+
+/* ---------- Onglets de page et sélecteurs segmentés : fond un peu plus foncé quand sélectionné ---------- */
+.tabs {
+  gap: 2px;
+  border-bottom: 0;
+}
+.tab {
+  border: 0;
+  margin-bottom: 0;
+  padding: 7px 12px;
+  border-radius: var(--radius);
+  font-weight: 400;
+  color: var(--text);
+}
+.tab:hover {
+  background: var(--cyan-survol);
+}
+.tab.active {
+  background: var(--cyan-actif);
+  color: var(--cyan-texte-actif);
+  font-weight: 500;
+}
+.segmented {
+  background: var(--gray-100);
+  border-radius: var(--radius);
+}
+.segmented button,
+.segmented a {
+  font-weight: 400;
+  color: var(--text);
+  border-radius: var(--radius-sm);
+}
+.segmented button:hover,
+.segmented a:hover {
+  background: var(--cyan-survol);
+}
+.segmented .active {
+  background: var(--cyan-actif);
+  color: var(--cyan-texte-actif);
+  box-shadow: none;
+  font-weight: 500;
+}
+.cible-ligne.on {
+  background: var(--cyan-panneau);
+}
+
+/* ---------- Écran de connexion ---------- */
+.login-visuel {
+  background: var(--cyan-panneau);
+  color: var(--text);
+  border-right: 1px solid var(--border);
+}
+.login-visuel h1,
+.login-visuel .chiffres strong,
+.login-visuel strong {
+  color: var(--text-strong) !important;
+  font-weight: 500;
+}
+.login-visuel p,
+.login-visuel .chiffres span,
+.login-visuel .row div {
+  color: var(--text-muted) !important;
+}
+
+/* ---------- Carte : barre supérieure ---------- */
+body.geo {
+  background: var(--cyan-fond);
+}
+.geo-top {
+  background: var(--surface);
+  color: var(--text-strong);
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
+}
+.geo-top .btn-ghost {
+  --b-fg: var(--text);
+}
+.geo-top .btn-ghost:hover {
+  background: var(--cyan-survol);
+  color: var(--text-strong);
+}
+.geo-brand {
+  color: var(--text-strong);
+}
+.geo-brand strong {
+  font-weight: 600;
+}
+.geo-brand small {
+  color: var(--text-muted);
+}
+.geo-search .input {
+  background: var(--gray-50);
+  border: 1px solid var(--border);
+  color: var(--text-strong);
+  border-radius: var(--radius);
+}
+.geo-search .input::placeholder,
+.geo-search > .mi {
+  color: var(--gray-400);
+}
+.geo-search .input:focus {
+  background: var(--surface);
+  box-shadow: var(--ring);
+}
+.geo-top .user-chip {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+.geo-top .user-chip .who strong {
+  color: var(--text-strong);
+}
+.geo-top .user-chip .who small {
+  color: var(--text-muted);
+}
+
+/* ---------- Carte : onglets du panneau (2 lignes de 3, sans soulignement) ---------- */
+.panel-tabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  padding: 6px;
+  background: var(--cyan-panneau);
+}
+.panel-tabs button {
+  position: relative;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text);
+  overflow: visible;
+}
+.panel-tabs button .mi {
+  font-size: 17px;
+  color: var(--gray-500);
+}
+.panel-tabs button:hover {
+  background: var(--cyan-survol);
+  color: var(--text-strong);
+}
+.panel-tabs button.active {
+  background: var(--cyan-actif);
+  color: var(--cyan-texte-actif);
+  border: 0;
+  font-weight: 500;
+}
+.panel-tabs button.active .mi {
+  color: var(--cyan-texte-actif);
+}
+.panel-tabs button .badge {
+  position: static;
+  margin: 0 0 0 auto;
+  height: 17px;
+  min-width: 17px;
+  justify-content: center;
+  padding: 0 4px;
+  font-size: 10px;
+  background: var(--surface);
+  color: var(--cyan-texte-actif);
+  border: 1px solid var(--gray-300);
+}
+.panel-section > h3 {
+  font-weight: 500;
+  color: var(--gray-500);
+}
+.panel-section > h3 .mi {
+  display: none;
+}
+.basemap.active {
+  border-color: var(--primary);
+  box-shadow: none;
+}
+.layer,
+.basemap {
+  box-shadow: none;
+  border-radius: var(--radius);
+}
+
+/* ---------- Carte : boutons et barres flottantes ---------- */
+.map-btn {
+  border-radius: var(--radius);
+  color: var(--gray-600);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+.map-btn .mi {
+  font-size: 19px;
+}
+.map-btn:hover {
+  background: var(--cyan-survol);
+}
+.map-btn.active {
+  background: var(--cyan-actif);
+  color: var(--cyan-texte-actif);
+}
+.map-ctrl-group,
+.tools-bar {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+.map-ctrl-group .map-btn,
+.tools-bar .map-btn {
+  border: 0;
+  box-shadow: none;
+}
+.tools-bar .map-btn {
+  border-radius: var(--radius-sm);
+}
+.tool-hint {
+  background: var(--gray-800);
+  border-radius: var(--radius);
+}
+.timebar {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: none;
+}
+.timebar .tb-play {
+  background: var(--cyan-actif);
+  color: var(--cyan-texte-actif);
+  border-color: var(--gray-300);
+}
+.timebar .tb-play:hover {
+  background: var(--cyan-survol);
+  color: var(--cyan-texte-actif);
+}
+.status-bar {
+  backdrop-filter: none;
+  background: rgb(255 255 255 / 0.95);
+}
+
+/* ---------- Carte : fenêtres d'information ---------- */
+.ol-popup {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+.popup-head {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--cyan-panneau);
+  color: var(--text-strong);
+  border-bottom: 1px solid var(--border);
+}
+.popup-head h3 {
+  color: var(--text-strong);
+}
+.popup-head small,
+.popup-nav {
+  color: var(--text-muted);
+}
+.popup-head button {
+  background: transparent;
+  color: var(--gray-600);
+}
+.popup-head button:hover {
+  background: var(--cyan-survol);
+}
+.measure-tooltip {
+  background: var(--forest-800);
+}
+
+/* ---------- Petits écrans : rien ne doit élargir la page ---------- */
+@media (max-width: 760px) {
+  .app-main {
+    padding: 16px;
+  }
+  .app-main > *,
+  .card,
+  .card-body {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .app-main .row,
+  .app-main .segmented,
+  .card-header,
+  .card-header .actions {
+    flex-wrap: wrap;
+  }
+  .app-main .input-icon,
+  .app-main .input-icon .input {
+    max-width: 100%;
+    min-width: 0;
+  }
+}
+
+/* Pas de flou derrière les fenêtres */
+* {
+  backdrop-filter: none !important;
+}

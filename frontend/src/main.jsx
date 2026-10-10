@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
-import "@fontsource-variable/inter";
-import "material-icons/iconfont/outlined.css";
+import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import "@fontsource-variable/jost";
 import "./gr/app.css";
 import "./gr/carte.css";
 import "./gr/stats.css";
 import "./gr/crloi.css";
+import "./gr/theme.css";
 import "./gr/gr";
 import { AuthProvider, ViewProvider, useAuth } from "./context";
 import MapPage from "./pages/MapPage";
@@ -60,8 +60,8 @@ function Login() {
         <div className="row" style={{ gap: 12 }}>
           <img src="/img/crloi.svg" alt="" width="44" height="44" />
           <div>
-            <strong style={{ color: "#fff", fontSize: 15 }}>CRLOI Gôh</strong>
-            <div style={{ fontSize: 12, color: "#6ee7b7" }}>Comité régional de lutte contre l'orpaillage illégal</div>
+            <strong style={{ fontSize: 15 }}>CRLOI Gôh</strong>
+            <div style={{ fontSize: 12 }}>Comité régional de lutte contre l'orpaillage illégal</div>
           </div>
         </div>
         <div className="stack" style={{ gap: 14 }}>
@@ -131,9 +131,9 @@ function Sidebar() {
         {lien("/renseignement", "policy", "Fiches de renseignement")}
         {lien("/sites", "location_on", "Registre des sites")}
         <span className="nav-title">Prospection</span>
-        <NavLink to="/carte?onglet=prospection" className="nav-link">
+        <Link to="/carte?onglet=prospection" className="nav-link">
           <span className="mi">radar</span>Zones suspectes (GEE)
-        </NavLink>
+        </Link>
         {lien("/missions", "assignment", "Missions d'éclairage")}
         {user.role === "chef" && (
           <>

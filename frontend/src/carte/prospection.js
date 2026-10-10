@@ -63,7 +63,7 @@ export function initProspection(C, { racine, ecoute, ctx }) {
             stroke: new ol.style.Stroke({ color: c.statut === "programmee" ? "#2563eb" : coul, width: cochees.has(c.id) ? 4 : 2.2, lineDash: c.statut === "programmee" ? [6, 4] : undefined }),
             text:
               res < 30
-                ? new ol.style.Text({ text: c.code, font: "700 11px 'Inter Variable', Inter, sans-serif", fill: new ol.style.Fill({ color: "#7c2d12" }), stroke: new ol.style.Stroke({ color: "#fff", width: 3 }), overflow: true })
+                ? new ol.style.Text({ text: c.code, font: "700 11px 'Century Gothic', 'Jost Variable', sans-serif", fill: new ol.style.Fill({ color: "#7c2d12" }), stroke: new ol.style.Stroke({ color: "#fff", width: 3 }), overflow: true })
                 : undefined,
           }),
           // Repère visible à petite échelle (les zones font souvent moins d'un hectare)

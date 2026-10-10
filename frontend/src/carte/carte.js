@@ -379,7 +379,7 @@ export function initCarte(racine, ctx) {
       geometry: point ? undefined : (feat) => (feat.getGeometry().getType() === "MultiPolygon" ? feat.getGeometry().getInteriorPoints() : feat.getGeometry().getInteriorPoint()),
       text: new ol.style.Text({
         text: String(f.get("code") || ""),
-        font: "700 11.5px 'Inter Variable', Inter, sans-serif",
+        font: "700 11.5px 'Century Gothic', 'Jost Variable', sans-serif",
         offsetY: point ? -17 : 0,
         fill: new ol.style.Fill({ color: "#0f172a" }),
         stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.95)", width: 3.5 }),
@@ -407,7 +407,7 @@ export function initCarte(racine, ctx) {
         new ol.style.Style({ image: new ol.style.Circle({ radius: r + 5, fill: new ol.style.Fill({ color: K.rgba(c, 0.25) }) }) }),
         new ol.style.Style({
           image: new ol.style.Circle({ radius: r, fill: new ol.style.Fill({ color: c }), stroke: new ol.style.Stroke({ color: "#fff", width: 2 }) }),
-          text: new ol.style.Text({ text: String(n), font: "700 12px 'Inter Variable', Inter, sans-serif", fill: new ol.style.Fill({ color: "#fff" }) }),
+          text: new ol.style.Text({ text: String(n), font: "700 12px 'Century Gothic', 'Jost Variable', sans-serif", fill: new ol.style.Fill({ color: "#fff" }) }),
         }),
       ];
       stylesGroupes.set(k, s);

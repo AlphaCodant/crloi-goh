@@ -130,7 +130,7 @@ export function references() {
                 res < 400
                   ? new ol.style.Text({
                       text: `FC ${f.get("nom")}`,
-                      font: "600 12px 'Inter Variable', Inter, sans-serif",
+                      font: "600 12px 'Century Gothic', 'Jost Variable', sans-serif",
                       fill: new ol.style.Fill({ color: "#052e16" }),
                       stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.9)", width: 3 }),
                       overflow: true,
@@ -167,7 +167,7 @@ export function references() {
                     ? new ol.style.Text({
                         text: f.get("nom"),
                         placement: "line",
-                        font: "italic 600 12px 'Inter Variable', Inter, sans-serif",
+                        font: "italic 600 12px 'Century Gothic', 'Jost Variable', sans-serif",
                         fill: new ol.style.Fill({ color: "#0c4a6e" }),
                         stroke: new ol.style.Stroke({ color: "#fff", width: 3 }),
                       })
@@ -212,7 +212,7 @@ export function references() {
               stroke: new ol.style.Stroke({ color: "#be185d", width: 2, lineDash: f.get("approximative") ? [4, 6] : undefined }),
               text: new ol.style.Text({
                 text: f.get("nom"),
-                font: "600 12px 'Inter Variable', Inter, sans-serif",
+                font: "600 12px 'Century Gothic', 'Jost Variable', sans-serif",
                 fill: new ol.style.Fill({ color: "#831843" }),
                 stroke: new ol.style.Stroke({ color: "#fff", width: 3 }),
                 overflow: true,

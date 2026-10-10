@@ -439,7 +439,7 @@ GR.palette = ['#15803d', '#2563eb', '#d97706', '#9333ea', '#0891b2', '#dc2626', 
 GR.chartDefaults = function chartDefaults() {
   window.Apex = {
     chart: {
-      fontFamily: "'Inter Variable', Inter, system-ui, sans-serif",
+      fontFamily: "'Century Gothic', 'Jost Variable', system-ui, sans-serif",
       foreColor: '#475569',
       toolbar: {
         show: true,
