@@ -44,7 +44,20 @@ async def startup():
         await conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{DB_SCHEMA}"'))
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Colonnes ajoutées après la création des tables (create_all ne modifie pas une table existante)
+        for sql in MIGRATIONS:
+            await conn.execute(text(sql))
     await seed()
+
+
+MIGRATIONS = [
+    "ALTER TABLE brq ADD COLUMN IF NOT EXISTS departement VARCHAR(32) NOT NULL DEFAULT ''",
+    "ALTER TABLE brq ADD COLUMN IF NOT EXISTS periode_du DATE",
+    "ALTER TABLE brq ADD COLUMN IF NOT EXISTS periode_au DATE",
+    "ALTER TABLE brq ADD COLUMN IF NOT EXISTS chef_mission JSONB NOT NULL DEFAULT '{}'::jsonb",
+    "ALTER TABLE brq ADD COLUMN IF NOT EXISTS agents JSONB NOT NULL DEFAULT '[]'::jsonb",
+    "ALTER TABLE brq ADD COLUMN IF NOT EXISTS signataire_id VARCHAR REFERENCES signataires(id) ON DELETE SET NULL",
+]
 
 
 # Interface web (pages statiques reprises de GestReb) servie par la même application.

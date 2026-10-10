@@ -619,3 +619,195 @@ body.geo {
 * {
   backdrop-filter: none !important;
 }
+
+/* ---------- BRQ : mission, agents, médias, visa ---------- */
+.brq-bloc {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.brq-bloc > h4 {
+  font-size: 11.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-500);
+}
+.brq-sous {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-600);
+  margin-top: 4px;
+}
+.agents-ligne {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.6fr) minmax(0, 1.4fr) minmax(0, 1fr) 30px;
+  gap: 6px;
+  align-items: center;
+}
+.brq-mission {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 6px 18px;
+  margin: 10px 0 0;
+  font-size: 13px;
+}
+.brq-mission dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.brq-mission dd {
+  margin: 0;
+  min-width: 0;
+}
+.depot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px dashed var(--gray-300);
+  border-radius: var(--radius);
+  background: var(--gray-50);
+  cursor: pointer;
+  font-size: 13px;
+}
+.depot:hover {
+  background: var(--cyan-panneau);
+}
+.depot input {
+  display: none;
+}
+.depot > .mi {
+  font-size: 26px;
+  color: var(--gray-500);
+}
+.media-bande {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.media-vignette {
+  position: relative;
+  margin: 0;
+  width: 112px;
+  height: 84px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--gray-100);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.media-vignette img,
+.media-vignette .media-attente {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.media-video {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 5px 1px 2px;
+  border-radius: var(--radius-sm);
+  background: rgb(21 33 36 / 0.7);
+  color: #fff;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+.media-video .mi {
+  font-size: 15px;
+}
+.media-nouveau {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--cyan-texte-actif);
+  font-size: 10px;
+}
+.media-liste {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px;
+}
+.media-item {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) 30px;
+  gap: 10px;
+  align-items: start;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.media-item input,
+.media-item select {
+  height: 30px !important;
+  font-size: 12.5px;
+}
+.visa {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 16px;
+  align-items: start;
+}
+.visa-apercu {
+  min-height: 96px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  font-size: 12px;
+}
+.visa-apercu img {
+  max-width: 200px;
+  max-height: 70px;
+}
+.visionneuse {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  gap: 8px;
+  align-items: center;
+}
+.visionneuse-cadre {
+  display: grid;
+  place-items: center;
+  min-height: 300px;
+  background: var(--gray-100);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.visionneuse-cadre img,
+.visionneuse-cadre video {
+  max-width: 100%;
+  max-height: 70vh;
+  display: block;
+}
+@media (max-width: 640px) {
+  .agents-ligne {
+    grid-template-columns: 1fr 1fr;
+  }
+  .agents-ligne > :last-child {
+    justify-self: end;
+  }
+  .visa,
+  .media-item {
+    grid-template-columns: 1fr;
+  }
+  .media-liste {
+    grid-template-columns: 1fr;
+  }
+}

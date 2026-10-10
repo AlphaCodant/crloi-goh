@@ -163,3 +163,58 @@ def test_cours_eau_zones_fiches_crud(client):
                                                               "coord": {"sys": "wgs", "x": "-5.4", "y": "6.4"}})
     assert r.json()["localite"] == "Y" and r.json()["lat"] == 6.4
     assert client.delete(f"/api/fiches/{f['id']}", headers=h).status_code == 200
+
+
+def test_brq_mission_signature_medias(client):
+    h = auth(client)
+    site = client.get("/api/sites", headers=h).json()[0]
+    png = (b"\x89PNG\r\n\x1a\n" + b"0" * 64)
+    r = client.post("/api/signataires", headers=h, data={"nom": "Cdt Test", "fonction": "Président du Comité Départemental",
+                                                         "departement": "Gagnoa"}, files={"fichier": ("sig.png", png, "image/png")})
+    assert r.status_code == 200, r.text
+    sig = r.json()
+    assert client.post("/api/signataires", headers=h, data={"nom": "X"},
+                       files={"fichier": ("sig.pdf", b"%PDF", "application/pdf")}).status_code == 400
+
+    corps = {"date": "2026-10-08", "departement": "Gagnoa", "periode_du": "2026-10-06", "periode_au": "2026-10-07",
+             "chef_mission": {"grade": "Lieutenant", "nom": "Chef Test", "structure": "SODEFOR"},
+             "agents": [{"grade": "Sergent", "nom": "Agent Un", "structure": "Gendarmerie"}, {"grade": "", "nom": " ", "structure": ""}],
+             "signataire_id": sig["id"],
+             "visites": [{"site_id": site["id"], "constat": "tenu"}]}
+    assert client.post("/api/brq", headers=h, json={**corps, "periode_du": "2026-10-09"}).status_code == 422
+    r = client.post("/api/brq", headers=h, json=corps)
+    assert r.status_code == 200, r.text
+    b = r.json()
+    assert b["periode_du"] == "2026-10-06" and b["periode_au"] == "2026-10-07"
+    assert b["chef_mission"]["nom"] == "Chef Test" and len(b["agents"]) == 1
+    assert b["signataire"]["nom"] == "Cdt Test"
+
+    jpg = b"\xff\xd8\xff" + b"1" * 200
+    r = client.post(f"/api/brq/{b['id']}/medias", headers=h, data={"legende": "Fosse", "site_id": site["id"], "date_prise": "2026-10-06"},
+                    files={"fichier": ("p.jpg", jpg, "image/jpeg")})
+    assert r.status_code == 200, r.text
+    photo = r.json()
+    r = client.post(f"/api/brq/{b['id']}/medias", headers=h, data={"duree_s": "12.5"},
+                    files={"fichier": ("v.mp4", b"\x00\x00\x00\x18ftypmp42", "video/mp4"), "miniature": ("m.jpg", jpg, "image/jpeg")})
+    assert r.status_code == 200 and r.json()["type"] == "video"
+    video = r.json()
+    assert client.post(f"/api/brq/{b['id']}/medias", headers=h, files={"fichier": ("a.txt", b"x", "text/plain")}).status_code == 400
+
+    assert client.get(f"/api/medias/{photo['id']}/fichier", headers=h).content == jpg
+    assert client.get(f"/api/medias/{video['id']}/miniature", headers=h).content == jpg
+    assert client.get(f"/api/signataires/{sig['id']}/signature", headers=h).content == png
+    assert client.patch(f"/api/medias/{photo['id']}", headers=h, json={"legende": "Fosse rebouchée"}).json()["legende"] == "Fosse rebouchée"
+
+    b = client.get(f"/api/brq/{b['id']}", headers=h).json()
+    assert [m["type"] for m in b["medias"]] == ["photo", "video"] or len(b["medias"]) == 2
+
+    # Modifier le BRQ ne touche pas aux médias ; retirer le signataire garde la signature des BRQ existants
+    r = client.put(f"/api/brq/{b['id']}", headers=h, json={**corps, "agents": []})
+    assert r.status_code == 200 and len(r.json()["medias"]) == 2 and r.json()["agents"] == []
+    assert client.delete(f"/api/signataires/{sig['id']}", headers=h).status_code == 200
+    assert all(g["id"] != sig["id"] for g in client.get("/api/signataires", headers=h).json())
+    assert client.get(f"/api/brq/{b['id']}", headers=h).json()["signataire"]["nom"] == "Cdt Test"
+
+    assert client.delete(f"/api/medias/{photo['id']}", headers=h).status_code == 200
+    assert client.delete(f"/api/brq/{b['id']}", headers=h).status_code == 200
+    assert client.get(f"/api/medias/{video['id']}/fichier", headers=h).status_code == 404

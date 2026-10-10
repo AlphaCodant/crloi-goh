@@ -75,6 +75,47 @@ class Brq(Base):
     reference: Mapped[str] = mapped_column(String(64), default="")
     unites: Mapped[str] = mapped_column(String(255), default="")
     observations: Mapped[str] = mapped_column(Text, default="")
+    departement: Mapped[str] = mapped_column(String(32), default="")
+    periode_du: Mapped[date | None] = mapped_column(Date, nullable=True)
+    periode_au: Mapped[date | None] = mapped_column(Date, nullable=True)
+    chef_mission: Mapped[dict] = mapped_column(JSONB, default=dict)  # {"grade", "nom", "structure"}
+    agents: Mapped[list] = mapped_column(JSONB, default=list)  # [{"grade", "nom", "structure"}]
+    signataire_id: Mapped[str | None] = mapped_column(String, ForeignKey("signataires.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    created_by: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class Signataire(Base):
+    """Responsable d'un Comité Départemental et sa signature numérisée (image), réutilisable d'un BRQ à l'autre."""
+    __tablename__ = "signataires"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    nom: Mapped[str] = mapped_column(String(255))
+    fonction: Mapped[str] = mapped_column(String(255), default="")
+    departement: Mapped[str] = mapped_column(String(32), default="")
+    mime: Mapped[str] = mapped_column(String(32), default="image/png")
+    contenu: Mapped[bytes] = deferred(mapped_column(LargeBinary))
+    actif: Mapped[bool] = mapped_column(Boolean, default=True)  # retiré de la liste sans effacer les BRQ déjà signés
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    created_by: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class BrqMedia(Base):
+    """Photo ou vidéo jointe à un BRQ (éventuellement rattachée à un site visité)."""
+    __tablename__ = "brq_medias"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    brq_id: Mapped[str] = mapped_column(String, ForeignKey("brq.id", ondelete="CASCADE"), index=True)
+    site_id: Mapped[str | None] = mapped_column(String, ForeignKey("sites.id", ondelete="SET NULL"), nullable=True)
+    type: Mapped[str] = mapped_column(String(8))  # photo | video
+    mime: Mapped[str] = mapped_column(String(64))
+    nom_fichier: Mapped[str] = mapped_column(String(255), default="")
+    legende: Mapped[str] = mapped_column(Text, default="")
+    date_prise: Mapped[date | None] = mapped_column(Date, nullable=True)
+    largeur: Mapped[int] = mapped_column(Integer, default=0)
+    hauteur: Mapped[int] = mapped_column(Integer, default=0)
+    duree_s: Mapped[float | None] = mapped_column(Float, nullable=True)
+    taille: Mapped[int] = mapped_column(Integer, default=0)
+    miniature: Mapped[bytes | None] = deferred(mapped_column(LargeBinary, nullable=True))
+    contenu: Mapped[bytes] = deferred(mapped_column(LargeBinary))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     created_by: Mapped[str | None] = mapped_column(String, nullable=True)
 

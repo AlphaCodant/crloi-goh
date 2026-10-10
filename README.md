@@ -34,6 +34,7 @@ Au premier démarrage, la base est remplie avec les 24 sites et les visites du 3
 | **Rideau avant / après** | Comparaison de deux sources (fond, couches GEE, images drone à deux dates). |
 | **Prospection GEE** | Onglet *Prospection* : analyse d'une zone (emprise visible, zone dessinée, forêt classée, zone de travail) entre une période de référence et une période récente ; zones suspectes scorées (perte de NDVI 35 %, sol nu 25 %, turbidité 10 %, proximité de l'eau 20 %, surface 10 %). Signalement manuel de zones. |
 | **Missions d'éclairage** | Page *Missions* : regroupement de zones suspectes, équipe, moyens, export GPX / KML pour le GPS, compte rendu, résultat par zone (confirmée → devient un site, infirmée, écartée). |
+| **BRQ complet** | Période de la mission (en plus de la date du bulletin), comité départemental, chef de mission, agents participants (saisie ou liste collée depuis Excel), photos (réduites à 2 560 px dans le navigateur) et vidéos (50 Mo au plus), visa du responsable du Comité départemental avec signature numérisée importée une fois puis réutilisée. Version imprimable / PDF avec photos en annexe. |
 
 ### Relier Google Earth Engine
 
