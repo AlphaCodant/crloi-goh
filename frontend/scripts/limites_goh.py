@@ -16,7 +16,9 @@ def r6(g, tol):
         return [rd(x) for x in c] if isinstance(c[0], (list, tuple)) else [round(c[0], 6), round(c[1], 6)]
     j["coordinates"] = rd(j["coordinates"]); return j
 def fc(feats): return {"type": "FeatureCollection", "features": feats}
-P = "/home/claude/crloi-app/frontend/public/geo/"
+from pathlib import Path
+RACINE = Path(__file__).resolve().parents[2]
+P = str(RACINE / "frontend/public/geo") + "/"
 TOL = 0.00008
 sp = lit("Departements_goh.shp")
 reg = lit("Region_goh.shp")[0][0].buffer(0)
@@ -38,7 +40,7 @@ for nom, feats in [("region_goh", regf), ("departements_goh", depf), ("sous_pref
 json.dump({"region": regf[0]["geometry"],
            "sous_prefectures": [{"nom": f["properties"]["nom"], "departement": f["properties"]["departement"], "geometrie": f["geometry"]} for f in spf],
            "cours_eau": [{"nom": f["properties"]["nom"], "trace": f["geometry"]} for f in cef]},
-          open("/home/claude/crloi-app/backend/app/data/goh.json", "w"), ensure_ascii=False, separators=(",", ":"))
+          open(RACINE / "backend/app/data/goh.json", "w"), ensure_ascii=False, separators=(",", ":"))
 from pyproj import Geod
 G = Geod(ellps="WGS84")
 print("région km²", round(abs(G.geometry_area_perimeter(reg)[0]) / 1e6))
