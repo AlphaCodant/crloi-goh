@@ -8,6 +8,7 @@ import "./gr/stats.css";
 import "./gr/crloi.css";
 import "./gr/theme.css";
 import "./gr/gr";
+import { MODULES } from "./modules";
 import { AuthProvider, ViewProvider, useAuth } from "./context";
 import MapPage from "./pages/MapPage";
 import Dashboard from "./pages/Dashboard";
@@ -126,8 +127,8 @@ function Sidebar() {
         {lien("/carte", "map", "Carte de situation")}
         {lien("/tableau-de-bord", "insights", "Tableau de bord")}
         <span className="nav-title">Renseignement</span>
-        {lien("/brq", "today", "BRQ")}
-        {lien("/hebdo", "date_range", "Rapports hebdomadaires")}
+        {MODULES.brq && lien("/brq", "today", "BRQ")}
+        {MODULES.hebdo && lien("/hebdo", "date_range", "Rapports hebdomadaires")}
         {lien("/renseignement", "policy", "Fiches de renseignement")}
         {lien("/sites", "location_on", "Registre des sites")}
         <span className="nav-title">Prospection</span>
@@ -226,8 +227,8 @@ function Shell() {
           <Routes>
             <Route path="/tableau-de-bord" element={<Dashboard />} />
             <Route path="/sites" element={<Sites />} />
-            <Route path="/brq" element={<BrqPage />} />
-            <Route path="/hebdo" element={<Hebdo />} />
+            {MODULES.brq && <Route path="/brq" element={<BrqPage />} />}
+            {MODULES.hebdo && <Route path="/hebdo" element={<Hebdo />} />}
             <Route path="/renseignement" element={<Fiches />} />
             <Route path="/missions" element={<Missions />} />
             {user.role === "chef" && <Route path="/equipe" element={<Equipe />} />}

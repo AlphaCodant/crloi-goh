@@ -1,5 +1,6 @@
 /* Gabarit HTML du géoportail (structure identique à la carte GestReb). */
 import GR from "../gr/gr";
+import { MODULES } from "../modules";
 
 const { esc } = GR;
 
@@ -30,7 +31,7 @@ export function gabarit({ user }) {
           <hr>
           <a href="/tableau-de-bord" data-lien="/tableau-de-bord"><span class="mi">insights</span>Tableau de bord</a>
           <a href="/sites" data-lien="/sites"><span class="mi">location_on</span>Registre des sites</a>
-          <a href="/brq" data-lien="/brq"><span class="mi">today</span>BRQ</a>
+          ${MODULES.brq ? '<a href="/brq" data-lien="/brq"><span class="mi">today</span>BRQ</a>' : ""}
           <a href="/renseignement" data-lien="/renseignement"><span class="mi">policy</span>Fiches de renseignement</a>
           <hr>
           <a href="#" data-deconnexion style="color:var(--danger)"><span class="mi">logout</span>Se déconnecter</a>
