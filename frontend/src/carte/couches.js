@@ -141,8 +141,71 @@ export const INTENSITES = {
   "": { libelle: "Non évalué", couleur: "#0369a1", largeur: 2 },
 };
 
+// Réseau hydrographique complet (OpenStreetMap, extrait du 11/10/2026) : chargé à l'affichage de la couche
+export const sourceReseauHydro = new ol.source.Vector({ url: "/geo/reseau_hydro_goh.geojson", format: geojson });
+export const sourcePlansEau = new ol.source.Vector({ url: "/geo/plans_eau_goh.geojson", format: geojson });
+
 export function references() {
   return [
+    {
+      id: "reseau-hydro",
+      nom: "Réseau hydrographique",
+      detail: "Rivières et ruisseaux (OSM, 11/10/2026)",
+      couleur: "#3b82b0",
+      ligne: true,
+      visible: true,
+      opacite: 1,
+      legende: [
+        { libelle: "Rivière", couleur: "#2f6f99", ligne: true },
+        { libelle: "Ruisseau", couleur: "#6aa3c4", ligne: true },
+        { libelle: "Ruisseau temporaire", couleur: "#6aa3c4", ligne: true, pointille: true },
+      ],
+      couche: () =>
+        new ol.layer.Vector({
+          source: sourceReseauHydro,
+          zIndex: 2,
+          declutter: true,
+          style: (f, res) => {
+            const riviere = f.get("type") === "rivière";
+            if (!riviere && res > 80) return null; // ruisseaux à partir du 1/300 000 environ
+            const nom = f.get("nom");
+            return new ol.style.Style({
+              stroke: new ol.style.Stroke({
+                color: riviere ? "#2f6f99" : "#6aa3c4",
+                width: riviere ? 1.8 : 1,
+                lineDash: f.get("intermittent") ? [5, 4] : undefined,
+              }),
+              text:
+                nom && res < (riviere ? 60 : 25)
+                  ? new ol.style.Text({
+                      text: nom,
+                      placement: "line",
+                      font: `italic ${riviere ? 600 : 500} 11px 'Century Gothic', 'Jost Variable', sans-serif`,
+                      fill: new ol.style.Fill({ color: "#1f4f6e" }),
+                      stroke: new ol.style.Stroke({ color: "#fff", width: 3 }),
+                    })
+                  : undefined,
+            });
+          },
+        }),
+    },
+    {
+      id: "plans-eau",
+      nom: "Plans d'eau",
+      detail: "Lacs, retenues, bassins (OSM)",
+      couleur: "#6aa3c4",
+      visible: true,
+      opacite: 1,
+      couche: () =>
+        new ol.layer.Vector({
+          source: sourcePlansEau,
+          zIndex: 2,
+          style: new ol.style.Style({
+            fill: new ol.style.Fill({ color: "rgba(106,163,196,0.45)" }),
+            stroke: new ol.style.Stroke({ color: "#2f6f99", width: 1 }),
+          }),
+        }),
+    },
     {
       id: "region",
       nom: "Région du Gôh",

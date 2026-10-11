@@ -1145,9 +1145,13 @@ export function initCarte(racine, ctx) {
     if (C.clicSupplementaire?.(evt)) return undefined;
     let foret = null;
     let riviere = null;
+    let troncon = null;
     if (refs["cours-eau"]?.couche.getVisible()) map.forEachFeatureAtPixel(evt.pixel, (f) => (riviere = f), { layerFilter: (l) => l === refs["cours-eau"].couche, hitTolerance: 4 });
-    if (!riviere && refs.forets?.couche.getVisible()) map.forEachFeatureAtPixel(evt.pixel, (f) => (foret = f), { layerFilter: (l) => l === refs.forets.couche });
+    if (!riviere && refs["reseau-hydro"]?.couche.getVisible())
+      map.forEachFeatureAtPixel(evt.pixel, (f) => (troncon = f), { layerFilter: (l) => l === refs["reseau-hydro"].couche, hitTolerance: 4 });
+    if (!riviere && !troncon && refs.forets?.couche.getVisible()) map.forEachFeatureAtPixel(evt.pixel, (f) => (foret = f), { layerFilter: (l) => l === refs.forets.couche });
     if (riviere) afficherPopupRiviere(riviere, evt.coordinate);
+    else if (troncon) afficherPopupTroncon(troncon, evt.coordinate);
     else if (foret) afficherPopupForet(foret, evt.coordinate);
     else fermerPopup();
     return undefined;
@@ -1186,6 +1190,52 @@ export function initCarte(racine, ctx) {
     popupEl.querySelector('[data-pf="sites"]')?.addEventListener("click", () => {
       C.selectionner(sitesFc.filter((x) => sourceSites.getFeatureById(x.getId())).map((x) => x.getId()), { zoom: true });
       C.ouvrirTable(true);
+    });
+    popup.setPosition(coord);
+  }
+
+  /* Tronçon du réseau hydrographique OSM : informations et ajout au registre des cours d'eau */
+  function afficherPopupTroncon(f, coord) {
+    const nom = f.get("nom") || "";
+    const memes = nom ? K.sourceReseauHydro.getFeatures().filter((x) => x.get("nom") === nom) : [f];
+    const km = memes.reduce((t, x) => t + (x.get("km") || 0), 0);
+    const cle = (n) => String(n || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split("(")[0].trim();
+    const alias = { guerrhy: "guery", bon: "don" };
+    const dansRegistre = nom && (E.coursEau || []).some((x) => cle(x.nom) === (alias[cle(nom)] || cle(nom)));
+    const sps = [...new Set(memes.flatMap((x) => K.sourceSousPrefectures.getFeatures().filter((sp) => sp.getGeometry().intersectsExtent(x.getGeometry().getExtent())).map((sp) => sp.get("nom"))))].sort();
+    popupListe = [];
+    popupEl.style.display = "block";
+    popupEl.innerHTML = `
+      <div class="popup-head"><span class="mi">water</span><div><h3>${esc(nom || (f.get("type") === "rivière" ? "Rivière sans nom" : "Ruisseau sans nom"))}</h3>
+        <small>${esc(f.get("type"))}${f.get("intermittent") ? " temporaire" : ""} · OpenStreetMap, 11/10/2026</small></div>
+        <button data-fermer-popup title="Fermer"><span class="mi mi-sm">close</span></button></div>
+      <div class="popup-body"><dl class="dl">
+        <dt>Longueur dans le Gôh</dt><dd>${fmt.n(km, 1)} km${memes.length > 1 ? ` (${memes.length} tronçons)` : ""}</dd>
+        <dt>Sous-préfectures</dt><dd>${sps.length ? esc(sps.join(", ")) : "—"}</dd>
+        <dt>Registre</dt><dd>${dansRegistre ? '<span class="badge green">suivi dans le registre</span>' : nom ? "non suivi" : "—"}</dd>
+      </dl></div>
+      <div class="popup-actions">
+        <button class="btn btn-sm" data-pt="zoom"><span class="mi">zoom_in_map</span>Zoomer</button>
+        ${nom && !dansRegistre ? '<button class="btn btn-sm btn-primary" data-pt="registre"><span class="mi">add</span>Ajouter au registre</button>' : ""}
+      </div>`;
+    const ext = memes.reduce((e, x) => ol.extent.extend(e, x.getGeometry().getExtent()), ol.extent.createEmpty());
+    popupEl.querySelector('[data-pt="zoom"]').addEventListener("click", () => view.fit(ext, { padding: [60, 60, 160, 60], duration: 600, maxZoom: 14 }));
+    popupEl.querySelector('[data-pt="registre"]')?.addEventListener("click", async (e) => {
+      e.currentTarget.disabled = true;
+      try {
+        const lignes = memes.flatMap((x) => {
+          const g = x.getGeometry().clone().transform("EPSG:3857", "EPSG:4326");
+          return g.getType() === "MultiLineString" ? g.getCoordinates() : [g.getCoordinates()];
+        });
+        const c = await api("/cours-eau", { method: "POST", body: { nom, type: f.get("type") === "rivière" ? "Rivière" : "Ruisseau", longueur_km: Math.round(km * 10) / 10, commentaire: "Ajouté depuis le réseau hydrographique (OpenStreetMap, 11/10/2026)." } });
+        await api(`/cours-eau/${c.id}/trace`, { method: "PUT", body: { type: "MultiLineString", coordinates: lignes } });
+        GR.toast(`${nom} ajouté au registre des cours d'eau`);
+        fermerPopup();
+        await C.recharger();
+      } catch (x) {
+        GR.toast(x.message, "error");
+        e.currentTarget.disabled = false;
+      }
     });
     popup.setPosition(coord);
   }

@@ -48,7 +48,10 @@ def to_wgs84(sys: str, x, y) -> tuple[float, float]:
 _GOH = json.loads((Path(__file__).parent / "data" / "goh.json").read_text(encoding="utf-8"))
 REGION = _GOH["region"]
 SOUS_PREFECTURES = _GOH["sous_prefectures"]
-COURS_EAU_TRACES = {c["nom"]: c["trace"] for c in _GOH["cours_eau"]}
+# Cours d'eau nommés (OpenStreetMap, extrait du 11/10/2026, découpés sur la région) : tracé, longueur, type
+COURS_EAU = {c["nom"]: c for c in _GOH["cours_eau"]}
+COURS_EAU_TRACES = {n: c["trace"] for n, c in COURS_EAU.items()}
+EMPREINTES_TRACES_V1 = _GOH.get("cours_eau_v1_empreintes", {})
 SP_PAR_DEPARTEMENT = {d: sorted(sp["nom"] for sp in SOUS_PREFECTURES if sp["departement"] == d) for d in ("Gagnoa", "Oumé")}
 
 

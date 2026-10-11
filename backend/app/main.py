@@ -50,6 +50,7 @@ async def startup():
             await conn.execute(text(sql))
     await seed()
     await maj_goh.appliquer()
+    await maj_goh.traces_actualises()
 
 
 MIGRATIONS = [
