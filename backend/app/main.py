@@ -51,6 +51,7 @@ async def startup():
     await seed()
     await maj_goh.appliquer()
     await maj_goh.traces_actualises()
+    await maj_goh.sites_liste()
 
 
 MIGRATIONS = [

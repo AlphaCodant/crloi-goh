@@ -101,3 +101,90 @@ async def traces_actualises():
         db.add(M.Meta(cle=MARQUEUR_V2, valeur=f"{n} tracé(s) actualisé(s)"))
         await db.commit()
         log.info("Tracés des cours d'eau actualisés (OSM 11/10/2026) : %d", n)
+
+
+MARQUEUR_SITES = "sites_liste_2026_10_11"
+DATE_LISTE = __import__("datetime").date(2026, 10, 11)
+OBS_SERIHIO = ("Pas de recolonisation, mais des tentatives de reprise d'activités observées "
+               "et neutralisées par les patrouilles.")
+OBS_OUME = "Pas de recolonisation ; aucune trace d'activité récente observée à ce jour."
+OBS_FC = "Site ne présentant aucun signe d'activité récente."
+# Liste transmise par la cellule le 11/10/2026.
+# (sys, X, Y, département, localité, domaine, forêt, UGF, statut ou None = inchangé, observation)
+LISTE_SITES = (
+    [("29", x, y, "Gagnoa", loc, "rural", "", "", "tentative_reprise", OBS_SERIHIO) for loc, x, y in [
+        ("Behibrokro", 791330.00, 585582.00), ("Behibrokro", 791516.95, 585184.09),
+        ("Behibrokro", 804300.10, 652009.44), ("Behibrokro", 802699.28, 652032.31),
+        ("Zobokro", 803750.10, 651176.71), ("Zobokro", 804326.64, 652870.34),
+        ("Kouassi-N'Guessankoffikro", 800872.65, 654175.25), ("Kangahkro", 803596.64, 651083.73),
+        ("N'Guessankoffikro", 800538.71, 653220.65)]]
+    + [("30", x, y, "Oumé", loc, "rural", "", "", "tenu", OBS_OUME) for loc, x, y in [
+        ("Doka", 238747.20, 705256.27), ("Doka", 238350.05, 705811.29),
+        ("Dougbafla", 238215.09, 703199.60), ("Dougbafla", 239940.67, 704021.51),
+        ("Kouaméfla", 232523.23, 728305.08), ("Kouaméfla", 231631.93, 728309.41),
+        ("Zangué", 238813.20, 706239.42), ("Zangué", 239216.96, 707128.82),
+        ("N'zikro", 239990, 705731)]]
+    + [("30", 232374, 691105, "Oumé", "FC Sangoué", "foret_classee", "FC Sangoué", "Sangoué", "tenu", OBS_FC),
+       ("30", 232290, 690922, "Oumé", "FC Sangoué", "foret_classee", "FC Sangoué", "Sangoué", "tenu", OBS_FC),
+       ("30", 229352, 687513, "Oumé", "FC Sangoué", "foret_classee", "FC Sangoué", "Sangoué", "tenu", OBS_FC),
+       ("30", 228424, 728951, "Oumé", "FC Téné", "foret_classee", "FC Téné", "Téné", "tenu", OBS_FC),
+       ("30", 248041, 703498, "Oumé", "FC Doka", "foret_classee", "FC Doka", "Laouda", None, "Rive droite du Bandama."),
+       ("30", 240544, 704848, "Oumé", "FC Doka", "foret_classee", "FC Doka", "Laouda", None,
+        "Site situé sur le lit et les berges du fleuve Bandama.")]
+)
+
+
+def _meme_point(saisie, sys, x, y) -> bool:
+    try:
+        return (str(saisie.get("sys")) == sys and abs(float(saisie.get("x")) - x) < 1
+                and abs(float(saisie.get("y")) - y) < 1)
+    except (AttributeError, TypeError, ValueError):
+        return False
+
+
+async def sites_liste():
+    """Applique la liste des sites du 11/10/2026 : met à jour les sites existants (repérés par leurs
+    coordonnées saisies), ajoute un événement quand le statut change, crée les sites manquants."""
+    from .routes_sites import next_code
+
+    async with SessionLocal() as db:
+        if (await db.execute(select(M.Meta).where(M.Meta.cle == MARQUEUR_SITES))).scalar_one_or_none():
+            return
+        sites = (await db.execute(select(M.Site))).scalars().all()
+        maj = crees = evts = 0
+        for sys, x, y, dep, loc, dom, foret, ugf, statut, obs in LISTE_SITES:
+            s = next((s for s in sites if _meme_point(s.coord_saisie, sys, x, y)), None)
+            lat, lng = geo.to_wgs84(sys, x, y)
+            lieu = geo.localiser(lat, lng) or {}
+            sp = lieu.get("sous_prefecture", "")
+            note = f"Liste des sites du 11/10/2026 : {obs}"
+            if s is None:
+                s = M.Site(code=await next_code(db, dep), localite=loc, departement=dep, sous_prefecture=sp,
+                           domaine=dom, foret=foret, ugf=ugf, lat=lat, lng=lng,
+                           coord_saisie={"sys": sys, "x": x, "y": y}, coord_alerte=geo.controle_goh(lat, lng),
+                           observations=obs)
+                db.add(s)
+                await db.flush()
+                sites.append(s)
+                db.add(M.SiteEvent(site_id=s.id, date=DATE_LISTE, statut=statut or "tenu", source="rapport", note=note))
+                crees += 1
+                evts += 1
+                continue
+            s.localite, s.departement, s.domaine, s.foret, s.ugf = loc, dep, dom, foret, ugf
+            if sp:
+                s.sous_prefecture = sp
+            if obs not in (s.observations or ""):
+                ancien = (s.observations or "").strip()
+                s.observations = f"{ancien}\n{note}" if ancien else obs
+            maj += 1
+            if statut:
+                dernier = (await db.execute(select(M.SiteEvent).where(M.SiteEvent.site_id == s.id)
+                                            .order_by(M.SiteEvent.date.desc(), M.SiteEvent.created_at.desc())
+                                            .limit(1))).scalar_one_or_none()
+                if dernier is None or dernier.statut != statut:
+                    db.add(M.SiteEvent(site_id=s.id, date=DATE_LISTE, statut=statut, source="rapport", note=note))
+                    evts += 1
+        bilan = f"{maj} site(s) mis à jour, {crees} créé(s), {evts} changement(s) de statut"
+        db.add(M.Meta(cle=MARQUEUR_SITES, valeur=bilan))
+        await db.commit()
+        log.info("Liste des sites du 11/10/2026 appliquée : %s", bilan)

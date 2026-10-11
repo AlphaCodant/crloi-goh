@@ -49,7 +49,13 @@ def test_mauvais_mot_de_passe(client):
 def test_parcours(client):
     h = auth(client)
     sites = client.get("/api/sites", headers=h).json()
-    assert len(sites) >= 24                      # sites du rapport n°1 chargés au démarrage
+    assert len(sites) == 26                      # rapport n°1 (24 géolocalisés + 2 cités) ; liste du 11/10 sans doublon
+    par_loc = {}
+    for x in sites:
+        par_loc.setdefault(x["localite"], set()).add(x["statut"])
+    assert par_loc["Zobokro"] == {"tentative_reprise"}   # liste des sites du 11/10/2026
+    assert par_loc["N'zikro"] == {"tenu"} and par_loc["FC Doka"] == {"demantele"}
+    assert all(x["sous_prefecture"] == "Oumé" for x in sites if x["localite"].startswith("FC "))
 
     r = client.post("/api/sites", headers=h, json={
         "localite": "Site test", "departement": "Oumé", "domaine": "rural",
