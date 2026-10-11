@@ -89,7 +89,7 @@ async def change_password(data: PasswordIn, user=Depends(current_user), db: Asyn
 @router.get("/referentiels")
 async def referentiels(_u=Depends(current_user)):
     return {"statuts": ST.STATUTS, "saisies": ST.SAISIES, "roles": ROLES, "systemes": geo.SYSTEMES, "goh_bbox": geo.GOH_BBOX,
-            "fiche_statuts": FICHE_STATUTS}
+            "fiche_statuts": FICHE_STATUTS, "sous_prefectures": geo.SP_PAR_DEPARTEMENT}
 
 
 # ---------- Fiches de renseignement ----------

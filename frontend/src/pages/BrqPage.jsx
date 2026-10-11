@@ -62,7 +62,7 @@ export default function BrqPage() {
           <div key={b.id} className="card">
             <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ minWidth: 0 }}>
-                <h3>BRQ du {frDate(b.date)}{b.departement && <span className="muted" style={{ fontWeight: 400 }}> · Comité départemental de {b.departement}</span>}</h3>
+                <h3>BRQ du {frDate(b.date)}{b.departement && <span className="muted" style={{ fontWeight: 400 }}> · Comité départemental {b.departement === "Oumé" ? "d'Oumé" : "de " + b.departement}</span>}</h3>
                 <div className="muted" style={{ fontSize: 13 }}>{[b.reference, b.unites].filter(Boolean).join(" · ")}</div>
               </div>
               <div className="row" style={{ flex: "none" }}>

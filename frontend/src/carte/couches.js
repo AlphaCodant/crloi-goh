@@ -95,6 +95,42 @@ export const statutsForets = [
 const couleurStatutForet = (f) => (statutsForets.find((x) => x.cle === (f.get("statut") || "")) || statutsForets[2]).couleur;
 
 export const sourceForets = new ol.source.Vector({ url: "/geo/forets_classees.geojson", format: geojson });
+// Limites administratives officielles du Gôh (couches de la cellule, UTM 30N converties en WGS84)
+// Chargées dès l'ouverture, même si la couche est masquée : elles servent aussi à localiser les points.
+function sourceChargee(url) {
+  const src = new ol.source.Vector();
+  fetch(url)
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
+    .then((gj) => {
+      src.addFeatures(geojson.readFeatures(gj));
+      src.dispatchEvent("featuresloadend");
+    })
+    .catch(() => {});
+  return src;
+}
+export const sourceRegion = sourceChargee("/geo/region_goh.geojson");
+export const sourceDepartements = sourceChargee("/geo/departements_goh.geojson");
+export const sourceSousPrefectures = sourceChargee("/geo/sous_prefectures_goh.geojson");
+export const sourceChefsLieux = sourceChargee("/geo/chefs_lieux_goh.geojson");
+
+/** Département et sous-préfecture d'un point (coordonnées EPSG:3857), d'après les limites officielles. */
+export function lieuAdministratif(coord3857) {
+  const sp = sourceSousPrefectures.getFeaturesAtCoordinate(coord3857)[0];
+  return sp ? { departement: sp.get("departement"), sous_prefecture: sp.get("nom") } : null;
+}
+/** « de Gagnoa », « d'Oumé » */
+export const deNom = (n) => (/^[aeiouyéèêâîôûh]/i.test(n || "") ? `d'${n}` : `de ${n}`);
+export const nomsSousPrefectures = () =>
+  sourceSousPrefectures.getFeatures().map((f) => f.get("nom")).sort((a, b) => a.localeCompare(b, "fr"));
+
+const etiquette = (texte, taille, couleur, poids = 600) =>
+  new ol.style.Text({
+    text: texte,
+    font: `${poids} ${taille}px 'Century Gothic', 'Jost Variable', sans-serif`,
+    fill: new ol.style.Fill({ color: couleur }),
+    stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.92)", width: 3 }),
+    overflow: true,
+  });
 export const sourceCoursEau = new ol.source.Vector();
 export const sourceZones = new ol.source.Vector();
 
@@ -107,6 +143,98 @@ export const INTENSITES = {
 
 export function references() {
   return [
+    {
+      id: "region",
+      nom: "Région du Gôh",
+      detail: "Zone d'intervention du CRLOI",
+      couleur: "#152124",
+      ligne: true,
+      visible: true,
+      opacite: 1,
+      couche: () =>
+        new ol.layer.Vector({
+          source: sourceRegion,
+          zIndex: 4,
+          style: [
+            new ol.style.Style({ stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.85)", width: 6 }) }),
+            new ol.style.Style({ stroke: new ol.style.Stroke({ color: "#152124", width: 2.6 }) }),
+          ],
+        }),
+    },
+    {
+      id: "departements",
+      nom: "Départements",
+      detail: "Gagnoa et Oumé",
+      couleur: "#36464a",
+      ligne: true,
+      visible: true,
+      opacite: 1,
+      couche: () =>
+        new ol.layer.Vector({
+          source: sourceDepartements,
+          zIndex: 3,
+          declutter: true,
+          style: (f, res) =>
+            new ol.style.Style({
+              stroke: new ol.style.Stroke({ color: "#36464a", width: 1.8, lineDash: [12, 5, 2, 5] }),
+              text: res > 150 ? etiquette(`Département ${deNom(f.get("nom"))}`.toUpperCase(), 12, "#36464a", 500) : undefined,
+            }),
+        }),
+    },
+    {
+      id: "sous-prefectures",
+      nom: "Sous-préfectures",
+      detail: "16 sous-préfectures",
+      couleur: "#66797e",
+      ligne: true,
+      visible: false,
+      opacite: 1,
+      couche: () =>
+        new ol.layer.Vector({
+          source: sourceSousPrefectures,
+          zIndex: 3,
+          declutter: true,
+          style: (f, res) =>
+            new ol.style.Style({
+              stroke: new ol.style.Stroke({ color: "#66797e", width: 1, lineDash: [4, 4] }),
+              text: res < 150 ? etiquette(`S/P ${f.get("nom")}`, 11, "#4d5f63", 500) : undefined,
+            }),
+        }),
+    },
+    {
+      id: "chefs-lieux",
+      nom: "Chefs-lieux",
+      detail: "Départements et sous-préfectures",
+      couleur: "#152124",
+      visible: true,
+      opacite: 1,
+      couche: () =>
+        new ol.layer.Vector({
+          source: sourceChefsLieux,
+          zIndex: 8,
+          declutter: true,
+          style: (f, res) => {
+            const dep = f.get("rang") === "département";
+            if (!dep && res > 200) return null;
+            return new ol.style.Style({
+              image: new ol.style.RegularShape({
+                points: 4,
+                radius: dep ? 6 : 4.5,
+                angle: Math.PI / 4,
+                fill: new ol.style.Fill({ color: "#fff" }),
+                stroke: new ol.style.Stroke({ color: "#152124", width: dep ? 2 : 1.5 }),
+              }),
+              text: new ol.style.Text({
+                text: f.get("nom"),
+                offsetY: -13,
+                font: `${dep ? 600 : 500} ${dep ? 13 : 11.5}px 'Century Gothic', 'Jost Variable', sans-serif`,
+                fill: new ol.style.Fill({ color: "#152124" }),
+                stroke: new ol.style.Stroke({ color: "rgba(255,255,255,0.92)", width: 3 }),
+              }),
+            });
+          },
+        }),
+    },
     {
       id: "forets",
       nom: "Forêts classées",
@@ -183,7 +311,7 @@ export function references() {
       detail: "Centre de Gestion SODEFOR",
       couleur: "#7c3aed",
       ligne: true,
-      visible: true,
+      visible: false,
       opacite: 1,
       couche: () =>
         new ol.layer.Vector({

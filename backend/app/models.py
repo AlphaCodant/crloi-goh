@@ -287,3 +287,11 @@ class ImageDrone(Base):
     contenu: Mapped[bytes] = deferred(mapped_column(LargeBinary))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     created_by: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class Meta(Base):
+    """Marqueurs techniques (mises à jour de données déjà appliquées)."""
+    __tablename__ = "meta"
+    cle: Mapped[str] = mapped_column(String(64), primary_key=True)
+    valeur: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

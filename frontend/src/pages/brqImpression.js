@@ -54,7 +54,7 @@ figcaption small{color:#66797e}
 footer{margin-top:8mm;font-size:7.5pt;color:#66797e;text-align:center}
 </style></head><body>
 <header>
-  <div class="org">Comité régional de lutte contre l'orpaillage illégal du Gôh<br>${b.departement ? `Comité départemental de ${esc(b.departement)}` : "Cellule renseignement"}</div>
+  <div class="org">Comité régional de lutte contre l'orpaillage illégal du Gôh<br>${b.departement ? `Comité départemental ${b.departement === "Oumé" ? "d'Oumé" : "de " + esc(b.departement)}` : "Cellule renseignement"}</div>
   <div class="restreint">DIFFUSION RESTREINTE</div>
 </header>
 <h1>BULLETIN DE RENSEIGNEMENT QUOTIDIEN</h1>

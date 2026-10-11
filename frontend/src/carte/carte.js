@@ -17,7 +17,7 @@ const ol = window.ol;
 const { esc, fmt, $, $$ } = GR;
 
 const ZOOM_POLYGONES = 11;
-const ACCUEIL = { centre: [-5.75, 6.15], zoom: 9 };
+const ACCUEIL = { centre: [-5.81, 6.15], zoom: 9 }; // centre de la région du Gôh
 const JOUR = 864e5;
 
 const stock = {

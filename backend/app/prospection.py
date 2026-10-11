@@ -19,7 +19,7 @@ PARAMETRES_DEFAUT = {
     "rayon_site_connu_m": 300,  # distance pour rattacher une zone à un site connu
 }
 NIVEAUX = (("forte", 0.70), ("moyenne", 0.45), ("faible", 0.0))
-SURFACE_MAX_ZONE_HA = 600_000  # 6 000 km² : au-delà, découper la zone
+SURFACE_MAX_ZONE_HA = 750_000  # 7 500 km² : la région du Gôh entière (6 891 km²) passe
 
 
 def haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:

@@ -15,6 +15,7 @@ from sqlalchemy import text  # noqa: E402
 from .db import DB_SCHEMA, Base, engine  # noqa: E402
 from . import routes_brq, routes_imagerie, routes_misc, routes_sites  # noqa: E402
 from .seed import seed  # noqa: E402
+from . import maj_goh  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 app = FastAPI(title="CRLOI Gôh – Cellule renseignement")
@@ -48,6 +49,7 @@ async def startup():
         for sql in MIGRATIONS:
             await conn.execute(text(sql))
     await seed()
+    await maj_goh.appliquer()
 
 
 MIGRATIONS = [

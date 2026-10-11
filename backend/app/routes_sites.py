@@ -99,6 +99,13 @@ def apply_coord(site: M.Site, coord: Optional[Coord]):
     site.lat, site.lng = lat, lng
     site.coord_saisie = {"sys": coord.sys, "x": geo.parse_num(coord.x), "y": geo.parse_num(coord.y)}
     site.coord_alerte = geo.controle_goh(lat, lng)
+    lieu = geo.localiser(lat, lng)
+    if lieu:
+        if not (site.sous_prefecture or "").strip():
+            site.sous_prefecture = lieu["sous_prefecture"]
+        if site.departement and site.departement != lieu["departement"]:
+            site.coord_alerte = (f"Point situé dans la sous-préfecture de {lieu['sous_prefecture']} "
+                                 f"(département de {lieu['departement']}) : vérifier le département ou les coordonnées")
 
 
 async def events_map(db: AsyncSession, site_ids: Optional[list] = None) -> dict:

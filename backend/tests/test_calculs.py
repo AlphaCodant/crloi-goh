@@ -76,3 +76,21 @@ def test_series_hebdomadaires():
     assert [w["semaine"] for w in s] == ["2026-09-21", "2026-09-28"]
     assert s[1]["saisies_total"] == 2      # les tuyaux (en mètres) ne sont pas comptés comme objets
     assert s[1]["par_statut"]["demantele"] == 1 and s[1]["jours_brq"] == 1
+
+
+def test_limites_officielles_goh():
+    import json
+    from pathlib import Path
+    chefs = json.loads((Path(__file__).resolve().parents[2] / "frontend/public/geo/chefs_lieux_goh.geojson").read_text(encoding="utf-8"))
+    for f in chefs["features"]:
+        lng, lat = f["geometry"]["coordinates"]
+        lieu = geo.localiser(lat, lng)
+        assert lieu == {"departement": f["properties"]["departement"], "sous_prefecture": f["properties"]["nom"]}, f["properties"]
+        assert geo.controle_goh(lat, lng) == ""
+    assert geo.localiser(5.35, -4.0) is None                       # Abidjan
+    assert "hors" in geo.controle_goh(5.35, -4.0)
+    assert sorted(geo.SP_PAR_DEPARTEMENT["Oumé"]) == ["Diégonéfla", "Guépahouo", "Oumé", "Tonla"]
+    assert len(geo.SP_PAR_DEPARTEMENT["Gagnoa"]) == 12
+    assert geo.controle_goh(6.359485, -5.277629) == ""              # FC Doka, 250 m hors du tracé régional
+    assert geo.localiser(6.359485, -5.277629)["departement"] == "Oumé"
+    assert "hors" in geo.controle_goh(5.292214, -6.37167)           # Behibrokro (rapport n°1), ~47 km au sud

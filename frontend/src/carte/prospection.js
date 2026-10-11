@@ -133,7 +133,13 @@ export function initProspection(C, { racine, ecoute, ctx }) {
     const cur = sel.value;
     const fcs = K.sourceForets.getFeatures().map((f) => f.get("nom")).filter(Boolean).sort();
     const zs = K.sourceZones.getFeatures();
+    const nomsDe = (src) => src.getFeatures().map((f) => f.get("nom")).sort((a, b) => a.localeCompare(b, "fr"));
+    const deps = nomsDe(K.sourceDepartements);
+    const sps = nomsDe(K.sourceSousPrefectures);
     sel.innerHTML = `<option value="vue">Emprise visible de la carte</option><option value="dessin">Zone dessinée…</option>
+      ${K.sourceRegion.getFeatures().length ? `<option value="region">Région du Gôh entière</option>` : ""}
+      ${deps.length ? `<optgroup label="Départements">${deps.map((n) => `<option value="dep:${esc(n)}">Département ${esc(K.deNom(n))}</option>`).join("")}</optgroup>` : ""}
+      ${sps.length ? `<optgroup label="Sous-préfectures">${sps.map((n) => `<option value="sp:${esc(n)}">S/P ${esc(n)}</option>`).join("")}</optgroup>` : ""}
       ${zs.length ? `<optgroup label="Zones de travail">${zs.map((z) => `<option value="zone:${esc(z.get("id"))}">${esc(z.get("nom"))}</option>`).join("")}</optgroup>` : ""}
       ${fcs.length ? `<optgroup label="Forêts classées">${fcs.map((n) => `<option value="fc:${esc(n)}">FC ${esc(n)}</option>`).join("")}</optgroup>` : ""}`;
     if ([...sel.options].some((o) => o.value === cur)) sel.value = cur;
@@ -149,6 +155,16 @@ export function initProspection(C, { racine, ecoute, ctx }) {
     if (v.startsWith("zone:")) {
       const f = K.sourceZones.getFeatures().find((z) => z.get("id") === v.slice(5));
       return f ? { geom: f.getGeometry(), nom: f.get("nom") } : null;
+    }
+    if (v === "region") {
+      const f = K.sourceRegion.getFeatures()[0];
+      return f ? { geom: f.getGeometry(), nom: "Région du Gôh" } : null;
+    }
+    if (v.startsWith("dep:") || v.startsWith("sp:")) {
+      const dep = v.startsWith("dep:");
+      const nom = v.slice(dep ? 4 : 3);
+      const f = (dep ? K.sourceDepartements : K.sourceSousPrefectures).getFeatures().find((z) => z.get("nom") === nom);
+      return f ? { geom: f.getGeometry(), nom: dep ? `département ${K.deNom(nom)}` : `S/P ${nom}` } : null;
     }
     if (v.startsWith("fc:")) {
       const f = K.sourceForets.getFeatures().find((z) => z.get("nom") === v.slice(3));
@@ -207,7 +223,7 @@ export function initProspection(C, { racine, ecoute, ctx }) {
     const z = geometrieZone();
     if (!z) return GR.toast("Choisissez ou dessinez la zone à analyser", "warning");
     const km2 = ol.sphere.getArea(z.geom) / 1e6;
-    if (km2 > 6000) return GR.toast(`Zone trop grande (${fmt.n(km2)} km²) : 6 000 km² au plus. Zoomez ou choisissez une forêt.`, "warning", 7000);
+    if (km2 > 7500) return GR.toast(`Zone trop grande (${fmt.n(km2)} km²) : 7 500 km² au plus. Choisissez un département, une sous-préfecture ou une forêt.`, "warning", 7000);
     const corps = {
       zone: fmtGeo().writeGeometryObject(z.geom, { dataProjection: "EPSG:4326", featureProjection: "EPSG:3857", decimals: 6 }),
       zone_nom: z.nom,
@@ -485,7 +501,8 @@ export function initProspection(C, { racine, ecoute, ctx }) {
     const lieu = (() => {
       const fc = K.sourceForets.getFeaturesAtCoordinate(ol.proj.fromLonLat([c.lng, c.lat]))[0];
       const proche = c.site_proche_id ? E.sites.find((s) => s.id === c.site_proche_id) : null;
-      return { foret: fc?.get("nom") || "", departement: c.departement || proche?.departement || "Gagnoa", sp: proche?.sous_prefecture || "" };
+      const adm = K.lieuAdministratif(ol.proj.fromLonLat([c.lng, c.lat]));
+      return { foret: fc?.get("nom") || "", departement: adm?.departement || c.departement || proche?.departement || "Gagnoa", sp: adm?.sous_prefecture || proche?.sous_prefecture || "" };
     })();
     await formulaire({
       titre: `Enregistrer ${c.code} comme site`,
@@ -495,7 +512,7 @@ export function initProspection(C, { racine, ecoute, ctx }) {
       champs: [
         { nom: "localite", libelle: "Localité / village", requis: true },
         { nom: "departement", libelle: "Département", type: "select", options: ["Gagnoa", "Oumé"], valeur: lieu.departement },
-        { nom: "sous_prefecture", libelle: "Sous-préfecture", valeur: lieu.sp },
+        { nom: "sous_prefecture", libelle: "Sous-préfecture", valeur: lieu.sp, liste: K.nomsSousPrefectures() },
         { nom: "domaine", libelle: "Domaine", type: "select", options: [{ value: "rural", label: "Domaine rural" }, { value: "foret_classee", label: "Forêt classée" }], valeur: lieu.foret ? "foret_classee" : "rural" },
         { nom: "foret", libelle: "Forêt classée", valeur: lieu.foret, visibleSi: { champ: "domaine", valeurs: ["foret_classee"] } },
         { nom: "cours_eau", libelle: "Cours d'eau", valeur: "", liste: (E.coursEau || []).map((x) => x.nom) },
@@ -662,6 +679,7 @@ export function initProspection(C, { racine, ecoute, ctx }) {
 
   /* ------------------------------ Init --------------------------------- */
   K.sourceForets.on("featuresloadend", optionsZones);
+  [K.sourceRegion, K.sourceDepartements, K.sourceSousPrefectures].forEach((src) => src.on("featuresloadend", optionsZones));
   const apres = C.apresChargement;
   C.apresChargement = () => {
     apres?.();

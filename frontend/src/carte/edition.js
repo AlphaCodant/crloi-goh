@@ -151,7 +151,8 @@ export function initEdition(C, { racine, ecoute }) {
         proche = s;
       }
     });
-    return { foret: fc?.get("nom") || "", departement: proche?.departement || "Gagnoa", sous_prefecture: proche?.sous_prefecture || "" };
+    const adm = K.lieuAdministratif(coord3857);
+    return { foret: fc?.get("nom") || "", departement: adm?.departement || proche?.departement || "Gagnoa", sous_prefecture: adm?.sous_prefecture || proche?.sous_prefecture || "" };
   }
   const recharger = async (msg) => {
     if (msg) GR.toast(msg);
@@ -165,7 +166,7 @@ export function initEdition(C, { racine, ecoute }) {
     return [
       { nom: "localite", libelle: "Localité / village", requis: true, valeur: v.localite || "" },
       { nom: "departement", libelle: "Département", type: "select", options: ["Gagnoa", "Oumé"], valeur: v.departement || "Gagnoa" },
-      { nom: "sous_prefecture", libelle: "Sous-préfecture", valeur: v.sous_prefecture || "", liste: listeDistincte("sous_prefecture") },
+      { nom: "sous_prefecture", libelle: "Sous-préfecture", valeur: v.sous_prefecture || "", liste: [...new Set([...K.nomsSousPrefectures(), ...listeDistincte("sous_prefecture")])] },
       { nom: "domaine", libelle: "Domaine", type: "select", options: [{ value: "rural", label: "Domaine rural" }, { value: "foret_classee", label: "Forêt classée" }], valeur: v.domaine || (v.foret ? "foret_classee" : "rural") },
       { nom: "foret", libelle: "Forêt classée", valeur: v.foret || "", liste: nomsForets(), visibleSi: { champ: "domaine", valeurs: ["foret_classee"] } },
       { nom: "cours_eau", libelle: "Cours d'eau concerné", valeur: v.cours_eau || "", liste: (E.coursEau || []).map((c) => c.nom) },

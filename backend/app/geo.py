@@ -1,11 +1,13 @@
 """Outils géographiques : conversion des coordonnées, contrôle d'emprise, surfaces."""
+import json
 import math
+from pathlib import Path
 from typing import Optional
 
 from pyproj import Transformer
 
 # Emprise approximative de la Région du Gôh (Gagnoa et Oumé), utilisée pour signaler les erreurs.
-GOH_BBOX = {"min_lat": 5.55, "max_lat": 6.75, "min_lng": -6.40, "max_lng": -5.10}
+GOH_BBOX = {"min_lat": 5.62, "max_lat": 6.68, "min_lng": -6.45, "max_lng": -5.17}
 
 _TO_WGS = {
     "29": Transformer.from_crs(32629, 4326, always_xy=True),
@@ -41,14 +43,82 @@ def to_wgs84(sys: str, x, y) -> tuple[float, float]:
     return round(lat, 6), round(lng, 6)
 
 
+# Limites administratives officielles (région, 16 sous-préfectures) et tracés des cours d'eau,
+# converties depuis les shapefiles de la cellule (UTM 30N -> WGS84).
+_GOH = json.loads((Path(__file__).parent / "data" / "goh.json").read_text(encoding="utf-8"))
+REGION = _GOH["region"]
+SOUS_PREFECTURES = _GOH["sous_prefectures"]
+COURS_EAU_TRACES = {c["nom"]: c["trace"] for c in _GOH["cours_eau"]}
+SP_PAR_DEPARTEMENT = {d: sorted(sp["nom"] for sp in SOUS_PREFECTURES if sp["departement"] == d) for d in ("Gagnoa", "Oumé")}
+
+
+def _dans_anneau(x: float, y: float, anneau) -> bool:
+    dedans = False
+    j = len(anneau) - 1
+    for i in range(len(anneau)):
+        xi, yi = anneau[i][0], anneau[i][1]
+        xj, yj = anneau[j][0], anneau[j][1]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            dedans = not dedans
+        j = i
+    return dedans
+
+
+def dans_polygone(lng: float, lat: float, geom: dict) -> bool:
+    polys = [geom["coordinates"]] if geom["type"] == "Polygon" else geom["coordinates"]
+    return any(_dans_anneau(lng, lat, p[0]) and not any(_dans_anneau(lng, lat, h) for h in p[1:]) for p in polys)
+
+
+# Les limites administratives sont tracées à l'échelle régionale : un point à moins de 1 km
+# de la limite est considéré comme dans le Gôh (rattaché à la sous-préfecture la plus proche).
+TOLERANCE_M = 1000
+
+
+def distance_contour_m(lng: float, lat: float, geom: dict) -> float:
+    """Distance approximative (m) du point au contour du polygone (projection équirectangulaire locale)."""
+    kx = 111_320 * math.cos(math.radians(lat))
+    ky = 110_540
+    polys = [geom["coordinates"]] if geom["type"] == "Polygon" else geom["coordinates"]
+    best = float("inf")
+    for p in polys:
+        for anneau in p:
+            for (x1, y1), (x2, y2) in zip(anneau[:-1], anneau[1:]):
+                ax, ay = (x1 - lng) * kx, (y1 - lat) * ky
+                bx, by = (x2 - lng) * kx, (y2 - lat) * ky
+                dx, dy = bx - ax, by - ay
+                t = 0.0 if dx == dy == 0 else max(0.0, min(1.0, -(ax * dx + ay * dy) / (dx * dx + dy * dy)))
+                best = min(best, math.hypot(ax + t * dx, ay + t * dy))
+    return best
+
+
+def localiser(lat: Optional[float], lng: Optional[float]) -> Optional[dict]:
+    """Département et sous-préfecture qui contiennent le point (tolérance de 1 km), ou None hors du Gôh."""
+    if lat is None or lng is None:
+        return None
+    for sp in SOUS_PREFECTURES:
+        if dans_polygone(lng, lat, sp["geometrie"]):
+            return {"departement": sp["departement"], "sous_prefecture": sp["nom"]}
+    d, sp = _plus_proche(lng, lat)
+    return {"departement": sp["departement"], "sous_prefecture": sp["nom"]} if d <= TOLERANCE_M else None
+
+
+def _plus_proche(lng: float, lat: float):
+    return min(((distance_contour_m(lng, lat, sp["geometrie"]), sp) for sp in SOUS_PREFECTURES), key=lambda x: x[0])
+
+
 def controle_goh(lat: Optional[float], lng: Optional[float]) -> str:
     """Message d'alerte si le point sort de la région, sinon chaîne vide."""
     if lat is None or lng is None:
         return "Site non géolocalisé"
+    if dans_polygone(lng, lat, REGION):
+        return ""
     b = GOH_BBOX
-    if not (b["min_lat"] <= lat <= b["max_lat"] and b["min_lng"] <= lng <= b["max_lng"]):
-        return "Point hors de la région du Gôh : vérifier la zone UTM ou une erreur de saisie"
-    return ""
+    if b["min_lat"] <= lat <= b["max_lat"] and b["min_lng"] <= lng <= b["max_lng"]:
+        d = distance_contour_m(lng, lat, REGION)
+        if d <= TOLERANCE_M:
+            return ""
+        return f"Point à {d / 1000:.1f} km hors de la limite de la région du Gôh : vérifier les coordonnées"
+    return "Point hors de la région du Gôh : vérifier la zone UTM ou une erreur de saisie"
 
 
 def _ring_area_m2(ring) -> float:

@@ -133,10 +133,6 @@ async def seed():
         for nom, bassin, typ, loc, km, intensite, com in COURS_EAU:
             db.add(M.CoursEau(nom=nom, bassin=bassin, type=typ, localites=loc, longueur_km=km, intensite=intensite, commentaire=com))
 
-        b = geo.GOH_BBOX
-        db.add(M.Zone(nom="Région du Gôh (emprise approximative)", categorie="region", approximative=True,
-                      geometrie={"type": "Polygon", "coordinates": [[[b["min_lng"], b["min_lat"]], [b["max_lng"], b["min_lat"]],
-                                                                     [b["max_lng"], b["max_lat"]], [b["min_lng"], b["max_lat"]],
-                                                                     [b["min_lng"], b["min_lat"]]]]}))
+        db.add(M.Zone(nom="Région du Gôh", categorie="region", approximative=False, geometrie=geo.REGION))
         await db.commit()
         log.info("Données du rapport n°1 chargées : %d sites", len(refs))
