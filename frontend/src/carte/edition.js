@@ -6,6 +6,8 @@ import GR from "../gr/gr";
 import { api } from "../api";
 import * as K from "./couches";
 import { formulaire } from "./formulaire";
+import { PARAMETRES, PARAM, depasse } from "../eau";
+import { lundi } from "../tableau/calculs";
 
 const ol = window.ol;
 const { esc, fmt, $ } = GR;
@@ -589,6 +591,65 @@ export function initEdition(C, { racine, ecoute }) {
     return false;
   };
 
+  /* ------------------------ Qualité de l'eau -------------------------- */
+  async function saisirQualiteEau(f) {
+    const ceId = f.get("cours_eau_id") || f.get("id");
+    const ce = (E.coursEau || []).find((c) => c.id === ceId);
+    if (!ce) return undefined;
+    const base = f.get("mesure");
+    const mesures = (E.qualiteEau || []).filter((m) => m.cours_eau_id === ceId);
+    const points = [...new Set(mesures.map((m) => m.point).filter(Boolean))];
+    const v = await formulaire({
+      titre: `Qualité de l'eau — ${ce.nom}`,
+      icone: "water_drop",
+      large: true,
+      intro: "Un relevé par station et par semaine (lundi–dimanche). Si un relevé existe déjà pour cette station et cette semaine, il est mis à jour.",
+      champs: [
+        { nom: "date", libelle: "Date du prélèvement", type: "date", valeur: aujourdhui(), max: aujourdhui(), requis: true },
+        { nom: "point", libelle: "Station / point", valeur: base?.point || "", liste: points, placeholder: "ex. amont pont de Zangué" },
+        ...PARAMETRES.map((p) => ({ nom: p.cle, libelle: `${p.libelle} (${p.unite})`, type: "number", min: 0, step: "any", aide: `seuil ${String(p.seuil).replace(".", ",")}` })),
+        { nom: "autre_parametre", libelle: "Autre paramètre", placeholder: "ex. pH, arsenic, MES…" },
+        { nom: "autre_valeur", libelle: "Valeur", type: "number", step: "any" },
+        { nom: "autre_unite", libelle: "Unité", placeholder: "ex. µg/L" },
+        { nom: "lat", libelle: "Latitude (WGS84)", type: "number", step: "any", valeur: base?.lat ?? "", aide: "facultatif" },
+        { nom: "lng", libelle: "Longitude (WGS84)", type: "number", step: "any", valeur: base?.lng ?? "", aide: "facultatif" },
+        { nom: "observations", libelle: "Observations", type: "textarea", pleine: true },
+      ],
+      ok: "Enregistrer la mesure",
+      valider: async (x) => {
+        const autres = x.autre_parametre && x.autre_valeur !== null ? [{ parametre: x.autre_parametre, valeur: x.autre_valeur, unite: x.autre_unite || "" }] : [];
+        if (x.autre_parametre && x.autre_valeur === null) return "Indiquez la valeur de l'autre paramètre.";
+        if (PARAMETRES.every((p) => x[p.cle] === null) && !autres.length) return "Renseignez au moins un paramètre.";
+        if ((x.lat === null) !== (x.lng === null)) return "Renseignez la latitude et la longitude, ou aucune des deux.";
+        const point = (x.point || "").trim();
+        const existante = mesures.find((m) => m.semaine === lundi(x.date) && (m.point || "") === point);
+        const body = {
+          cours_eau_id: ceId,
+          date: x.date,
+          point,
+          coord: x.lat !== null ? { sys: "wgs", x: x.lng, y: x.lat } : null,
+          turbidite: x.turbidite,
+          mercure: x.mercure,
+          cyanure: x.cyanure,
+          autres: existante ? [...(existante.autres || []).filter((a) => !autres.some((b) => b.parametre === a.parametre)), ...autres] : autres,
+          observations: x.observations || "",
+        };
+        if (existante) {
+          for (const p of PARAMETRES) if (body[p.cle] === null) body[p.cle] = existante[p.cle];
+          if (!body.coord && existante.coord_saisie) body.coord = existante.coord_saisie;
+          if (!body.observations) body.observations = existante.observations || "";
+        }
+        const m = await api(existante ? `/qualite-eau/${existante.id}` : "/qualite-eau", { method: existante ? "PUT" : "POST", body });
+        const dep = PARAMETRES.filter((p) => depasse(m, p.cle)).map((p) => PARAM[p.cle].libelle);
+        GR.toast(dep.length ? `Mesure enregistrée — dépassement : ${dep.join(", ")}` : existante ? "Mesure de la semaine mise à jour" : "Mesure enregistrée", dep.length ? "warning" : "success");
+        return null;
+      },
+    });
+    if (!v) return undefined;
+    C.fermerPopup();
+    return C.recharger();
+  }
+
   /* --------------------------- Actions -------------------------------- */
   const actionPrecedente = C.actionEdition;
   C.actionEdition = async (action, f, bouton) => {
@@ -620,6 +681,8 @@ export function initEdition(C, { racine, ecoute }) {
           return retirerConstat(s, bouton.dataset.evt);
         case "fiche-deplacer":
           return deplacerFiche(f);
+        case "eau-saisir":
+          return saisirQualiteEau(f);
         case "cours-modifier":
           return formulaireCours((E.coursEau || []).find((c) => c.id === f.get("id")));
         case "cours-retracer":

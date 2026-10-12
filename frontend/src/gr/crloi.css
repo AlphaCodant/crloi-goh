@@ -745,3 +745,35 @@ details.avance summary {
 .mission-carte h3 {
   font-size: 15px;
 }
+
+/* ---- Qualité de l'eau : grille hebdomadaire ---- */
+.grille-eau td,
+.grille-eau th {
+  vertical-align: middle;
+}
+.case-eau {
+  min-width: 42px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px dashed var(--gray-300);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.case-eau[style] {
+  border-style: solid;
+}
+.case-eau:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.legende-eau {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}

@@ -8,6 +8,7 @@ import GR from "../gr/gr";
 import { api } from "../api";
 import { gabarit } from "./gabarit";
 import * as K from "./couches";
+import { STATUT_EAU, PARAMETRES, dernieres, statutCours, resume, depasse, fmtVal } from "../eau";
 import { initOutils } from "./outils";
 import { initEdition } from "./edition";
 import { initImagerie } from "./imagerie";
@@ -691,15 +692,52 @@ export function initCarte(racine, ctx) {
   }
   C.ajusterEmprise = ajusterEmprise;
 
+  /* ------------------------ Qualité de l'eau ------------------------- */
+  // Une station = un point de prélèvement d'un cours d'eau ; sans coordonnées, la mesure est rattachée au milieu du tracé.
+  function milieuTrace(ceId) {
+    const g = K.sourceCoursEau.getFeatureById(`ce-${ceId}`)?.getGeometry();
+    if (!g) return null;
+    const lignes = g.getType() === "MultiLineString" ? g.getLineStrings() : [g];
+    const l = lignes.reduce((a, b) => (b.getLength() > a.getLength() ? b : a));
+    return l.getCoordinateAt(0.5);
+  }
+  function majQualiteEau(mesures) {
+    E.qualiteEau = mesures;
+    const stations = new Map();
+    for (const m of mesures) {
+      const cle = m.lat != null && m.lng != null ? `${m.cours_eau_id}|${m.point || ""}` : `${m.cours_eau_id}|~`;
+      const cur = stations.get(cle);
+      if (!cur || m.semaine > cur.semaine || (m.semaine === cur.semaine && m.statut === "depassement" && cur.statut !== "depassement")) stations.set(cle, m);
+    }
+    K.sourceQualiteEau.clear();
+    const auj = aujourdhui();
+    for (const [cle, m] of stations) {
+      const xy = m.lat != null && m.lng != null ? ol.proj.fromLonLat([m.lng, m.lat]) : milieuTrace(m.cours_eau_id);
+      if (!xy) continue;
+      const f = new ol.Feature({
+        geometry: new ol.geom.Point(xy),
+        mesure: m,
+        cours_eau_id: m.cours_eau_id,
+        statut_affiche: statutCours(m, auj),
+        etiquette: m.point || m.cours_eau,
+        qualite: true,
+      });
+      f.setId(`qe-${cle}`);
+      K.sourceQualiteEau.addFeature(f);
+    }
+  }
+  C.majQualiteEau = majQualiteEau;
+
   /* --------------------------- Chargement ---------------------------- */
   async function charger() {
     $("#chargement", racine).classList.add("show");
     try {
-      const [sites, fiches, cours, zones] = await Promise.all([
+      const [sites, fiches, cours, zones, mesuresEau] = await Promise.all([
         api("/sites"),
         api("/fiches").catch(() => []),
         api("/cours-eau").catch(() => []),
         api("/zones").catch(() => []),
+        api(`/qualite-eau?du=${ajouterJours(aujourdhui(), -182)}`).catch(() => []),
       ]);
       if (signal.aborted) return;
       E.sites = sites;
@@ -738,6 +776,7 @@ export function initCarte(racine, ctx) {
         K.sourceCoursEau.addFeature(f);
       });
       E.coursEau = cours;
+      majQualiteEau(mesuresEau);
       K.sourceZones.clear();
       zones.forEach((z) => {
         if (!z.geometrie) return;
@@ -1146,6 +1185,9 @@ export function initCarte(racine, ctx) {
     let foret = null;
     let riviere = null;
     let troncon = null;
+    let station = null;
+    if (refs["qualite-eau"]?.couche.getVisible()) map.forEachFeatureAtPixel(evt.pixel, (f) => (station = f), { layerFilter: (l) => l === refs["qualite-eau"].couche, hitTolerance: 5 });
+    if (station) return afficherPopupStation(station, evt.coordinate);
     if (refs["cours-eau"]?.couche.getVisible()) map.forEachFeatureAtPixel(evt.pixel, (f) => (riviere = f), { layerFilter: (l) => l === refs["cours-eau"].couche, hitTolerance: 4 });
     if (!riviere && refs["reseau-hydro"]?.couche.getVisible())
       map.forEachFeatureAtPixel(evt.pixel, (f) => (troncon = f), { layerFilter: (l) => l === refs["reseau-hydro"].couche, hitTolerance: 4 });
@@ -1253,10 +1295,46 @@ export function initCarte(racine, ctx) {
         <dt>Longueur dans le Gôh</dt><dd>${p.longueur_km ? `${fmt.n(p.longueur_km, 2)} km` : "—"}</dd>
         ${p.localites ? `<dt>Localités</dt><dd>${esc(p.localites)}</dd>` : ""}
         ${p.commentaire ? `<dt>Commentaire</dt><dd>${esc(p.commentaire)}</dd>` : ""}
-      </dl></div>
-      <div class="popup-actions"><button class="btn btn-sm" data-pe="cours-modifier"><span class="mi">edit</span>Modifier</button>
+      </dl>${blocQualite(p.id)}</div>
+      <div class="popup-actions"><button class="btn btn-sm btn-primary" data-pe="eau-saisir"><span class="mi">water_drop</span>Mesure qualité</button>
+        <button class="btn btn-sm" data-pe="cours-modifier"><span class="mi">edit</span>Modifier</button>
         <button class="btn btn-sm" data-pe="cours-retracer"><span class="mi">timeline</span>Retracer</button>
         <button class="btn btn-sm btn-soft-danger" data-pe="cours-effacer"><span class="mi">delete</span>Effacer le tracé</button></div>`;
+    popupListe = [f];
+    popupIndex = 0;
+    popup.setPosition(coord);
+  }
+
+  function blocQualite(ceId) {
+    const d = dernieres((E.qualiteEau || []).filter((m) => m.cours_eau_id === ceId)).get(ceId);
+    const st = STATUT_EAU[statutCours(d, aujourdhui())];
+    const lien = `<a href="/qualite-eau?ce=${ceId}" data-lien="/qualite-eau?ce=${ceId}">Historique</a>`;
+    if (!d) return `<div class="popup-eau"><strong>Qualité de l'eau</strong> <span class="muted">— aucune mesure sur 6 mois</span> · ${lien}</div>`;
+    return `<div class="popup-eau"><div class="row"><strong>Qualité de l'eau</strong><span class="badge" style="background:${K.rgba(st.couleur, 0.14)};color:${st.couleur}">${esc(st.libelle)}</span></div>
+      <div class="muted" style="font-size:12px">Semaine du ${esc(fmt.date(d.semaine))}${d.point ? ` · ${esc(d.point)}` : ""} · ${lien}</div>
+      ${tableQualite(d)}</div>`;
+  }
+  function tableQualite(m) {
+    const lignes = PARAMETRES.filter((x) => m[x.cle] != null).map(
+      (x) => `<tr><td>${x.libelle}</td><td class="num right" style="${depasse(m, x.cle) ? "color:var(--danger);font-weight:700" : ""}">${fmtVal(m[x.cle], x.decimales)} ${x.unite}</td><td class="muted num right">seuil ${fmtVal(x.seuil, x.decimales)}</td></tr>`
+    );
+    (m.autres || []).forEach((a) => lignes.push(`<tr><td>${esc(a.parametre)}</td><td class="num right">${fmtVal(a.valeur, 3)} ${esc(a.unite || "")}</td><td></td></tr>`));
+    return `<table class="table compact" style="margin-top:6px;font-size:12px">${lignes.join("")}</table>`;
+  }
+  function afficherPopupStation(f, coord) {
+    const m = f.get("mesure");
+    const st = STATUT_EAU[f.get("statut_affiche")] || STATUT_EAU.aucune;
+    popupEl.style.display = "block";
+    popupEl.innerHTML = `
+      <div class="popup-head"><span class="mi" style="color:${st.couleur}">water_drop</span><div><h3>${esc(m.cours_eau)}</h3><small>${m.point ? `${esc(m.point)} · ` : ""}${m.lat != null ? "station géolocalisée" : "position indicative (milieu du tracé)"}</small></div>
+        <button data-fermer-popup title="Fermer"><span class="mi mi-sm">close</span></button></div>
+      <div class="popup-body"><dl class="dl">
+        <dt>Statut</dt><dd><span class="badge" style="background:${K.rgba(st.couleur, 0.14)};color:${st.couleur}">${esc(st.libelle)}</span></dd>
+        <dt>Prélèvement</dt><dd>${esc(fmt.date(m.date))} (semaine du ${esc(fmt.date(m.semaine))})</dd>
+        ${m.observations ? `<dt>Observations</dt><dd>${esc(m.observations)}</dd>` : ""}
+      </dl>${tableQualite(m)}</div>
+      <div class="popup-actions"><button class="btn btn-sm btn-primary" data-pe="eau-saisir"><span class="mi">add</span>Nouvelle mesure</button>
+        <a class="btn btn-sm" href="/qualite-eau?ce=${m.cours_eau_id}" data-lien="/qualite-eau?ce=${m.cours_eau_id}"><span class="mi">calendar_view_week</span>Historique</a></div>`;
     popupListe = [f];
     popupIndex = 0;
     popup.setPosition(coord);

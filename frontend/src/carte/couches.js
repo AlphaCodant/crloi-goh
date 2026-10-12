@@ -3,6 +3,7 @@
    (repris du géoportail GestReb)
    ===================================================================== */
 import proj4 from "proj4";
+import { STATUT_EAU } from "../eau";
 
 const ol = window.ol;
 
@@ -133,6 +134,7 @@ const etiquette = (texte, taille, couleur, poids = 600) =>
   });
 export const sourceCoursEau = new ol.source.Vector();
 export const sourceZones = new ol.source.Vector();
+export const sourceQualiteEau = new ol.source.Vector();
 
 export const INTENSITES = {
   tres_impacte: { libelle: "Très impacté", couleur: "#b91c1c", largeur: 4 },
@@ -359,6 +361,47 @@ export function references() {
                         text: f.get("nom"),
                         placement: "line",
                         font: "italic 600 12px 'Century Gothic', 'Jost Variable', sans-serif",
+                        fill: new ol.style.Fill({ color: "#0c4a6e" }),
+                        stroke: new ol.style.Stroke({ color: "#fff", width: 3 }),
+                      })
+                    : undefined,
+              }),
+            ];
+          },
+        }),
+    },
+    {
+      id: "qualite-eau",
+      nom: "Qualité de l'eau",
+      detail: "Dernier relevé hebdomadaire par station",
+      couleur: STATUT_EAU.depassement.couleur,
+      visible: true,
+      opacite: 1,
+      legende: ["depassement", "conforme", "autre", "ancien"].map((k) => ({ libelle: STATUT_EAU[k].libelle, couleur: STATUT_EAU[k].couleur })),
+      couche: () =>
+        new ol.layer.Vector({
+          source: sourceQualiteEau,
+          zIndex: 7,
+          style: (f, res) => {
+            const c = (STATUT_EAU[f.get("statut_affiche")] || STATUT_EAU.aucune).couleur;
+            return [
+              new ol.style.Style({
+                image: new ol.style.RegularShape({
+                  points: 4,
+                  radius: 8,
+                  angle: Math.PI / 4,
+                  fill: new ol.style.Fill({ color: c }),
+                  stroke: new ol.style.Stroke({ color: "#fff", width: 2 }),
+                }),
+              }),
+              new ol.style.Style({
+                image: new ol.style.Circle({ radius: 2.5, fill: new ol.style.Fill({ color: "#fff" }) }),
+                text:
+                  res < 40
+                    ? new ol.style.Text({
+                        text: f.get("etiquette"),
+                        offsetY: -16,
+                        font: "600 11px 'Century Gothic', 'Jost Variable', sans-serif",
                         fill: new ol.style.Fill({ color: "#0c4a6e" }),
                         stroke: new ol.style.Stroke({ color: "#fff", width: 3 }),
                       })

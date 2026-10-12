@@ -7,6 +7,7 @@ import { api, isoToday } from "../api";
 import { useView } from "../context";
 import { Chart, Kpi, MultiSelect, Vide } from "../components/gr";
 import * as T from "../tableau/calculs";
+import { PARAMETRES, STATUT_EAU, dernieres, statutCours, semaines, resume, grapheEau } from "../eau";
 
 const { fmt } = GR;
 const pct = (x, d = 0) => (x === null || x === undefined ? "—" : fmt.pct(x * 100, d));
@@ -41,9 +42,9 @@ export default function Dashboard() {
   const [recherche, setRecherche] = useState("");
 
   useEffect(() => {
-    Promise.all([api("/sites"), api("/brq"), api("/fiches").catch(() => []), api("/cours-eau").catch(() => [])])
-      .then(([sites, brq, fiches, coursEau]) => {
-        setDonnees({ sites, brq, fiches, coursEau });
+    Promise.all([api("/sites"), api("/brq"), api("/fiches").catch(() => []), api("/cours-eau").catch(() => []), api("/qualite-eau").catch(() => [])])
+      .then(([sites, brq, fiches, coursEau, qualiteEau]) => {
+        setDonnees({ sites, brq, fiches, coursEau, qualiteEau });
         const dates = sites.flatMap((s) => (s.events || []).map((e) => e.date)).concat(brq.map((b) => b.date));
         const min = dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : T.ajouter(isoToday(), -60);
         setPeriode((p) => ({ ...p, du: p.du || min }));
@@ -102,6 +103,26 @@ export default function Dashboard() {
     },
   };
   const categories = series.map((w) => T.semaineCourte(w.semaine));
+
+  // Qualité de l'eau à la date de référence du tableau de bord
+  const [paramEau, setParamEau] = useState("turbidite");
+  const eau = useMemo(() => {
+    if (!sel || !donnees) return null;
+    const ids = new Set(sel.coursEau.map((c) => c.id));
+    const mesures = (donnees.qualiteEau || []).filter((m) => ids.has(m.cours_eau_id) && m.date <= date);
+    const der = dernieres(mesures);
+    const etats = sel.coursEau.map((c) => ({ c, m: der.get(c.id), statut: statutCours(der.get(c.id), date) }));
+    const ordre = { depassement: 0, conforme: 1, autre: 2, ancien: 3, aucune: 4 };
+    etats.sort((a, b) => ordre[a.statut] - ordre[b.statut] || a.c.nom.localeCompare(b.c.nom, "fr"));
+    const sem = semaines(date, 12);
+    const suivisIds = [...new Set(mesures.filter((m) => m.semaine >= sem[0] && m[paramEau] !== null).map((m) => m.cours_eau_id))].slice(0, 8);
+    return {
+      etats,
+      depassements: etats.filter((e) => e.statut === "depassement").length,
+      suivis: etats.filter((e) => ["depassement", "conforme", "autre"].includes(e.statut)).length,
+      graphe: grapheEau({ mesures, cours: sel.coursEau, sem, param: paramEau, ids: suivisIds, hauteur: 300 }),
+    };
+  }, [sel, donnees, date, paramEau]);
 
   const g = useMemo(() => {
     if (!k) return {};
@@ -480,7 +501,7 @@ export default function Dashboard() {
         <Kpi icone="directions_walk" couleur="blue" libelle="Visites de sites" valeur={fmt.n(k.visites)} pied={`${k.sitesVisites} site(s) visité(s) sur la période`} />
         <Kpi icone="construction" couleur="violet" libelle="Matériel saisi" valeur={fmt.n(k.objets)} unite="objets" pied={k.tuyaux ? `et ${fmt.n(k.tuyaux)} m de tuyaux` : "sur la période"} />
         <Kpi icone="person_off" couleur="gray" libelle="Personnes interpellées" valeur={fmt.n(k.interpelles)} pied="sur la période" />
-        <Kpi icone="water" couleur="blue" libelle="Cours d'eau impactés" valeur={fmt.n(k.lineaire, 0)} unite="km" pied={`${k.rivieres} cours d'eau impacté(s) ou très impacté(s)`} />
+        <Kpi icone="water" couleur="blue" libelle="Cours d'eau impactés" valeur={fmt.n(k.lineaire, 0)} unite="km" pied={`${k.rivieres} impacté(s) ou très impacté(s)${eau ? ` · qualité : ${eau.depassements} en dépassement` : ""}`} />
         <Kpi
           icone="mark_email_read"
           couleur={k.brq7 >= 7 ? "" : k.brq7 >= 4 ? "amber" : "red"}
@@ -551,6 +572,46 @@ export default function Dashboard() {
           <div className="card-header"><h2>Fiches de renseignement</h2><span className="sub">par état de vérification</span></div>
           <div className="card-body"><Chart id="g-fiches" options={g.fiches} /></div>
         </article>
+
+        {eau && (
+          <>
+            <article className="card span-2">
+              <div className="card-header">
+                <h2>Qualité de l'eau</h2>
+                <span className="sub">valeur maximale hebdomadaire · 12 semaines</span>
+                <div className="actions no-print">
+                  <div className="segmented">
+                    {PARAMETRES.map((p) => <button key={p.cle} type="button" className={paramEau === p.cle ? "active" : ""} onClick={() => setParamEau(p.cle)}>{p.libelle}</button>)}
+                  </div>
+                </div>
+              </div>
+              <div className="card-body"><Chart id="g-eau" options={eau.graphe} /></div>
+            </article>
+            <article className="card">
+              <div className="card-header">
+                <h2>État des cours d'eau</h2>
+                <div className="actions no-print"><button className="btn btn-sm" type="button" onClick={() => nav("/qualite-eau")}><span className="mi">calendar_view_week</span>Détail</button></div>
+              </div>
+              <div className="card-body flush">
+                <div className="table-wrap" style={{ maxHeight: 340 }}>
+                  <table className="table compact">
+                    <tbody>
+                      {eau.etats.map(({ c, m, statut }) => {
+                        const st = STATUT_EAU[statut];
+                        return (
+                          <tr key={c.id} title={m ? resume(m) : ""}>
+                            <td className="cell-strong">{c.nom}{m && <div className="muted" style={{ fontSize: 12 }}>sem. du {T.dateFr(m.semaine)}</div>}</td>
+                            <td className="right"><span className="badge" style={{ background: `${st.couleur}1f`, color: st.couleur }}>{st.libelle}</span></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </>
+        )}
       </section>
 
       <section className="card mt-4">

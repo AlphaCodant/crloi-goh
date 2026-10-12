@@ -13,7 +13,7 @@ from pathlib import Path  # noqa: E402
 
 from sqlalchemy import text  # noqa: E402
 from .db import DB_SCHEMA, Base, engine  # noqa: E402
-from . import routes_brq, routes_imagerie, routes_misc, routes_sites  # noqa: E402
+from . import routes_brq, routes_eau, routes_imagerie, routes_misc, routes_sites  # noqa: E402
 from .seed import seed  # noqa: E402
 from . import maj_goh  # noqa: E402
 
@@ -25,6 +25,7 @@ api.include_router(routes_misc.router)
 api.include_router(routes_sites.router)
 api.include_router(routes_brq.router)
 api.include_router(routes_imagerie.router)
+api.include_router(routes_eau.router)
 
 
 @api.get("/")

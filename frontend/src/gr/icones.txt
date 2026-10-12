@@ -18,7 +18,9 @@ backspace
 badge
 block
 box
+calendar_view_week
 cancel
+cases
 charger
 check
 check_box_outline_blank
@@ -169,6 +171,7 @@ satellite
 satellite_alt
 save
 scale
+schedule
 score
 script
 search
@@ -176,6 +179,7 @@ search_off
 select
 serif
 share
+signature
 skeleton
 sort
 source
@@ -185,6 +189,7 @@ stack
 start
 step
 stop
+straight
 straighten
 style
 summarize
@@ -211,11 +216,14 @@ undo
 unfold_more
 upload
 upload_file
+uppercase
 variables
 verified
+vignette
 visibility
 warning
 water
+water_drop
 weight
 width
 window

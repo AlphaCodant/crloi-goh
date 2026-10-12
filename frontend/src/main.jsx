@@ -18,6 +18,7 @@ import Hebdo from "./pages/Hebdo";
 import Fiches from "./pages/Fiches";
 import Equipe from "./pages/Equipe";
 import Missions from "./pages/Missions";
+import QualiteEau from "./pages/QualiteEau";
 
 const PAGES = {
   "/tableau-de-bord": ["Tableau de bord", "Évolution des indicateurs à partir des BRQ et des statuts datés des sites"],
@@ -25,6 +26,7 @@ const PAGES = {
   "/brq": ["Bulletins de renseignement quotidiens", "Saisie des visites de sites, constats, saisies et interpellations"],
   "/hebdo": ["Rapports hebdomadaires", "Synthèse de la semaine calculée à partir des BRQ"],
   "/renseignement": ["Fiches de renseignement", "Informations reçues, cotation et suivi de vérification"],
+  "/qualite-eau": ["Qualité de l'eau", "Relevés hebdomadaires par cours d'eau : turbidité, mercure, cyanure et autres paramètres"],
   "/missions": ["Missions d'éclairage", "Vérification sur le terrain des zones suspectes détectées par satellite ou signalées"],
   "/equipe": ["Équipe de la cellule", "Comptes autorisés à se connecter"],
 };
@@ -131,6 +133,7 @@ function Sidebar() {
         {MODULES.hebdo && lien("/hebdo", "date_range", "Rapports hebdomadaires")}
         {lien("/renseignement", "policy", "Fiches de renseignement")}
         {lien("/sites", "location_on", "Registre des sites")}
+        {lien("/qualite-eau", "water_drop", "Qualité de l'eau")}
         <span className="nav-title">Prospection</span>
         <Link to="/carte?onglet=prospection" className="nav-link">
           <span className="mi">radar</span>Zones suspectes (GEE)
@@ -231,6 +234,7 @@ function Shell() {
             {MODULES.hebdo && <Route path="/hebdo" element={<Hebdo />} />}
             <Route path="/renseignement" element={<Fiches />} />
             <Route path="/missions" element={<Missions />} />
+            <Route path="/qualite-eau" element={<QualiteEau />} />
             {user.role === "chef" && <Route path="/equipe" element={<Equipe />} />}
             <Route path="*" element={<Navigate to="/carte" replace />} />
           </Routes>

@@ -224,3 +224,32 @@ def test_brq_mission_signature_medias(client):
     assert client.delete(f"/api/medias/{photo['id']}", headers=h).status_code == 200
     assert client.delete(f"/api/brq/{b['id']}", headers=h).status_code == 200
     assert client.get(f"/api/medias/{video['id']}/fichier", headers=h).status_code == 404
+
+
+def test_qualite_eau(client):
+    h = auth(client)
+    ce = client.post("/api/cours-eau", headers=h, json={"nom": "Rivière test eau"}).json()
+    r = client.post("/api/qualite-eau", headers=h, json={"cours_eau_id": ce["id"], "date": "2026-10-07", "point": "Pont"})
+    assert r.status_code == 422                                   # aucun paramètre renseigné
+    r = client.post("/api/qualite-eau", headers=h, json={"cours_eau_id": ce["id"], "date": "2026-10-07", "point": "Pont",
+                                                         "turbidite": 180.5, "mercure": 2.1, "autres": [{"parametre": "pH", "valeur": 6.4, "unite": ""}],
+                                                         "coord": {"sys": "30", "x": "238747", "y": "705256"}})
+    assert r.status_code == 200, r.text
+    m = r.json()
+    assert m["semaine"] == "2026-10-05" and m["statut"] == "depassement" and m["depassements"] == ["turbidite"]
+    assert m["lat"] and m["cours_eau"] == "Rivière test eau"
+    # même cours d'eau, même point, même semaine : refusé
+    r = client.post("/api/qualite-eau", headers=h, json={"cours_eau_id": ce["id"], "date": "2026-10-09", "point": "Pont", "cyanure": 0.01})
+    assert r.status_code == 409
+    # autre point la même semaine : accepté, conforme
+    r = client.post("/api/qualite-eau", headers=h, json={"cours_eau_id": ce["id"], "date": "2026-10-09", "point": "Aval", "cyanure": 0.01})
+    assert r.status_code == 200 and r.json()["statut"] == "conforme"
+    r = client.put(f"/api/qualite-eau/{m['id']}", headers=h, json={"cours_eau_id": ce["id"], "date": "2026-10-07", "point": "Pont", "turbidite": 3})
+    assert r.status_code == 200 and r.json()["statut"] == "conforme" and r.json()["lat"] is None
+    lst = client.get("/api/qualite-eau", headers=h, params={"cours_eau_id": ce["id"]}).json()
+    assert len(lst) == 2
+    assert client.get("/api/qualite-eau/seuils", headers=h).json()["mercure"]["seuil"] == 6.0
+    assert client.delete(f"/api/qualite-eau/{m['id']}", headers=h).json()["ok"]
+    # suppression du cours d'eau : mesures supprimées en cascade
+    assert client.delete(f"/api/cours-eau/{ce['id']}", headers=h).status_code == 200
+    assert client.get("/api/qualite-eau", headers=h, params={"cours_eau_id": ce["id"]}).json() == []

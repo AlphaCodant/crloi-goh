@@ -899,3 +899,13 @@ body.drawer-max .geo-drawer {
 #map .ol-overlaycontainer-stopevent {
   z-index: 7 !important;
 }
+
+/* Qualité de l'eau dans les popups */
+.popup-eau {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.popup-eau .row {
+  justify-content: space-between;
+}

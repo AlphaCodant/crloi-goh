@@ -2,7 +2,7 @@
 import uuid
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, deferred, mapped_column
 
@@ -193,6 +193,27 @@ class CoursEau(Base):
     intensite: Mapped[str] = mapped_column(String(32), default="non_impacte")  # tres_impacte | impacte | faible | non_impacte
     commentaire: Mapped[str] = mapped_column(Text, default="")
     trace: Mapped[dict | None] = mapped_column(JSONB, nullable=True)  # GeoJSON LineString / MultiLineString
+
+
+class QualiteEau(Base):
+    """Mesure hebdomadaire de la qualité de l'eau d'un cours d'eau (une par cours d'eau, point de prélèvement et semaine)."""
+    __tablename__ = "qualite_eau"
+    __table_args__ = (UniqueConstraint("cours_eau_id", "semaine", "point", name="uq_qualite_eau_semaine"),)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    cours_eau_id: Mapped[str] = mapped_column(String, ForeignKey("cours_eau.id", ondelete="CASCADE"), index=True)
+    date: Mapped[date] = mapped_column(Date, index=True)          # date du prélèvement
+    semaine: Mapped[date] = mapped_column(Date, index=True)       # lundi de la semaine ISO
+    point: Mapped[str] = mapped_column(String(128), default="")   # lieu de prélèvement
+    lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    lng: Mapped[float | None] = mapped_column(Float, nullable=True)
+    coord_saisie: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    turbidite: Mapped[float | None] = mapped_column(Float, nullable=True)  # NTU
+    mercure: Mapped[float | None] = mapped_column(Float, nullable=True)    # µg/L
+    cyanure: Mapped[float | None] = mapped_column(Float, nullable=True)    # mg/L
+    autres: Mapped[list] = mapped_column(JSONB, default=list)            # [{parametre, valeur, unite}]
+    observations: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    created_by: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class Zone(Base):
